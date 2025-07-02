@@ -1,0 +1,4087 @@
+const modifier = (text) => {
+const hiddenNatures = [
+    "Empathic", "Vengeful", "Curious", "Proud",
+    "Submissive", "Protective", "Wild"
+ ];
+  
+  if (typeof output === "undefined") output = [];
+  if (typeof state === "undefined") state = {};
+  if (!state) state = {};
+  if (typeof text === "undefined") text = "";
+
+  // === UNIVERSAL INIT OF ROOT OBJECTS ===
+  if (!state.unlockedNPCs) state.unlockedNPCs = {};
+  if (!state.region) state.region = "Kanto";
+  if (!state.towns) state.towns = {};
+  if (!state.reputation) state.reputation = {};
+  if (!state.biomes) state.biomes = {};
+  if (!state.pokemonData) state.pokemonData = {};
+  if (!state.legends) state.legends = {};
+  if (!state.pokemonBond) state.pokemonBond = {};
+  if (!state.timeOfDay) state.timeOfDay = "day";
+  if (!state.location) state.location = "Forest";
+  if (!state.pokemonMoves) state.pokemonMoves = {};
+  if (!state.flags) state.flags = {};
+  if (!state.trainerLog) state.trainerLog = [];
+  if (!state.npcMemory) state.npcMemory = {};
+  if (!state.dreamFlags) state.dreamFlags = {};
+  if (!state.inventory) state.inventory = {};
+  if (!state.usedItems) state.usedItems = {};
+  if (!state.keyItems || typeof state.keyItems.add !== "function") {
+    state.keyItems = new Set(Array.isArray(state.keyItems) ? state.keyItems : []);
+  }
+  if (!state.pokemonItems) state.pokemonItems = {};
+  if (!state.lastDreamDay) state.lastDreamDay = 0;
+  if (!state.reputationLog) state.reputationLog = {};
+  if (!state.pokedex) state.pokedex = {
+    entries: {},
+    version: "Kanto-Dex",
+    unlockedEvolutions: new Set(),
+    totalCaught: 0
+  };
+  if (!state.pokedex.unlockedEvolutions || typeof state.pokedex.unlockedEvolutions.add !== "function") {
+    state.pokedex.unlockedEvolutions = new Set(Object.keys(state.pokedex.unlockedEvolutions || {}));
+  }
+  if (!state.globalEvents) {
+  state.globalEvents = {
+    "Riftwake": false,
+    "Weather Collapse": false,
+    "Ultra Anomalies": false,
+    "Dreamers' Curse": false,
+    // --- Add more events as you build them ---
+    "Shadow Uprising": false,    // Orre/Shadow-related crisis
+    "Plague of Fog": false,      // Mysterious event idea
+    "Champion's Challenge": false, // World tournament arc
+    "Dimensional Breach": false, // Multiverse crossover
+    "Wild Swarm": false,         // Massive Pokémon migration
+    // ...more as you need
+  };
+}
+
+
+// --- Region Setup ---
+state.regions = state.regions || [
+  "Kanto", "Johto", "Hoenn", "Sinnoh", "Unova",
+  "Kalos", "Alola", "Galar", "Paldea", "Orre"
+];
+
+// --- Faction Setup ---
+if (!state.factions) state.factions = {};
+
+// --- Add all your base/original/canon/cosmic/evil factions ---
+Object.assign(state.factions, {
+  // --- Pokémon Leagues & Organizations ---
+  "GLU":               { reputation: 0,   known: false }, // Global League Union
+  "Kanto League":      { reputation: 0,   known: false },
+  "Kanto Champion":    { reputation: 0,   known: false },
+  "Johto League":      { reputation: 0,   known: false },
+  "Johto Champion":    { reputation: 0,   known: false },
+  "Hoenn League":      { reputation: 0,   known: false },
+  "Hoenn Champion":    { reputation: 0,   known: false },
+  "Sinnoh League":     { reputation: 0,   known: false },
+  "Sinnoh Champion":   { reputation: 0,   known: false },
+  "Unova League":      { reputation: 0,   known: false },
+  "Unova Champion":    { reputation: 0,   known: false },
+  "Kalos League":      { reputation: 0,   known: false },
+  "Kalos Champion":    { reputation: 0,   known: false },
+  "Alola League":      { reputation: 0,   known: false },
+  "Galar League":      { reputation: 0,   known: false },
+  "Galar Champion":    { reputation: 0,   known: false },
+  "Paldea League":     { reputation: 0,   known: false },
+  "Paldea Champion":   { reputation: 0,   known: false },
+
+  "EcoGuard":          { reputation: 5,   known: true },
+  "Rescue Corps":      { reputation: 0,   known: false },
+  "Daycare Union":     { reputation: 0,   known: false },
+  "News Network":      { reputation: 0,   known: false },
+  "The Underground":   { reputation: 0,   known: false },
+  "Ranger Federation": { reputation: 0,   known: false },
+
+  // --- Original Custom Factions ---
+  "Team Rift":           { reputation: -10, known: true },
+  "Team Rift Grunt":     { reputation: 0,   known: false },
+  "Team Rift Admin":     { reputation: 0,   known: false },
+  "Crimson Order":       { reputation: -20, known: false },
+  "Crimson Cultist":     { reputation: 0,   known: false },
+  "SableTech":           { reputation: 0,   known: false },
+  "Black Archive":       { reputation: 0,   known: false },
+  "Team Snare":          { reputation: -5,  known: false },
+
+  // --- Canon Evil Teams (with subgroups) ---
+  // Kanto
+  "Team Rocket":         { reputation: -15, known: false },
+  "Team Rocket Grunt":   { reputation: 0,   known: false },
+  "Team Rocket Admin":   { reputation: 0,   known: false },
+  "Team Rocket Leader":  { reputation: 0,   known: false },
+  // Johto
+  "Neo Team Rocket":         { reputation: -18, known: false },
+  "Neo Team Rocket Grunt":   { reputation: 0,    known: false },
+  "Neo Team Rocket Admin":   { reputation: 0,    known: false },
+  "Neo Team Rocket Leader":  { reputation: 0,    known: false },
+  // Hoenn
+  "Team Aqua":           { reputation: -12, known: false },
+  "Team Aqua Grunt":     { reputation: 0,   known: false },
+  "Team Aqua Admin":     { reputation: 0,   known: false },
+  "Team Aqua Leader":    { reputation: 0,   known: false },
+  "Team Magma":          { reputation: -12, known: false },
+  "Team Magma Grunt":    { reputation: 0,   known: false },
+  "Team Magma Admin":    { reputation: 0,   known: false },
+  "Team Magma Leader":   { reputation: 0,   known: false },
+  // Sinnoh
+  "Team Galactic":           { reputation: -20, known: false },
+  "Team Galactic Grunt":     { reputation: 0,   known: false },
+  "Team Galactic Admin":     { reputation: 0,   known: false },
+  "Team Galactic Leader":    { reputation: 0,   known: false },
+  // Unova
+  "Team Plasma":             { reputation: -18, known: false },
+  "Team Plasma Grunt":       { reputation: 0,   known: false },
+  "Team Plasma Admin":       { reputation: 0,   known: false },
+  "Team Plasma Leader":      { reputation: 0,   known: false },
+  // Kalos
+  "Team Flare":              { reputation: -20, known: false },
+  "Team Flare Grunt":        { reputation: 0,   known: false },
+  "Team Flare Admin":        { reputation: 0,   known: false },
+  "Team Flare Leader":       { reputation: 0,   known: false },
+  // Alola
+  "Team Skull":              { reputation: -10, known: false },
+  "Team Skull Grunt":        { reputation: 0,   known: false },
+  "Team Skull Admin":        { reputation: 0,   known: false },
+  "Team Skull Leader":       { reputation: 0,   known: false },
+  "Aether Foundation":       { reputation: 0,   known: false },
+  "Aether Admin":            { reputation: 0,   known: false },
+  "Aether President":        { reputation: 0,   known: false },
+  // Galar
+  "Team Yell":               { reputation: -5,  known: false },
+  "Team Yell Grunt":         { reputation: 0,   known: false },
+  "Team Yell Leader":        { reputation: 0,   known: false },
+  "Macro Cosmos":            { reputation: 0,   known: false },
+  "Macro Cosmos Admin":      { reputation: 0,   known: false },
+  // Paldea
+  "Team Star":               { reputation: -8,  known: false },
+  "Team Star Grunt":         { reputation: 0,   known: false },
+  "Team Star Boss":          { reputation: 0,   known: false },
+  // Orre
+  "Cipher":                  { reputation: -30, known: false },
+  "Cipher Peon":             { reputation: 0,   known: false },
+  "Cipher Admin":            { reputation: 0,   known: false },
+  "Cipher Boss":             { reputation: 0,   known: false },
+  "Team Snagem":             { reputation: -15, known: false },
+  "Team Snagem Grunt":       { reputation: 0,   known: false },
+  "Team Snagem Admin":       { reputation: 0,   known: false },
+  "Team Snagem Leader":      { reputation: 0,   known: false },
+  "ONBS":                    { reputation: 5,   known: false },
+  "Phenac Police":           { reputation: 0,   known: false },
+  "Kids Grid":               { reputation: 0,   known: false },
+
+  // --- Optional: League Front Orgs/Staff ---
+  "Battle Frontier":      { reputation: 0, known: false },   // Hoenn/Sinnoh/Johto etc.
+  "Pokémon League Staff": { reputation: 0, known: false },
+  "League Referees":      { reputation: 0, known: false },
+  "League TV/Announcers": { reputation: 0, known: false },
+});
+
+const gymLeaders = {
+  Kanto: [
+    "Pewter Gym (Brock)", "Cerulean Gym (Misty)", "Vermilion Gym (Lt. Surge)", "Celadon Gym (Erika)",
+    "Fuchsia Gym (Koga/Janine)", "Saffron Gym (Sabrina)", "Cinnabar Gym (Blaine)", "Viridian Gym (Giovanni/Blue)"
+  ],
+  Johto: [
+    "Violet Gym (Falkner)", "Azalea Gym (Bugsy)", "Goldenrod Gym (Whitney)", "Ecruteak Gym (Morty)",
+    "Cianwood Gym (Chuck)", "Olivine Gym (Jasmine)", "Mahogany Gym (Pryce)", "Blackthorn Gym (Clair)"
+  ],
+  Hoenn: [
+    "Rustboro Gym (Roxanne)", "Dewford Gym (Brawly)", "Mauville Gym (Wattson)", "Lavaridge Gym (Flannery)",
+    "Petalburg Gym (Norman)", "Fortree Gym (Winona)", "Mossdeep Gym (Tate & Liza)", "Sootopolis Gym (Wallace/Juan)"
+  ],
+  Sinnoh: [
+    "Oreburgh Gym (Roark)", "Eterna Gym (Gardenia)", "Hearthome Gym (Fantina)", "Veilstone Gym (Maylene)",
+    "Pastoria Gym (Crasher Wake)", "Canalave Gym (Byron)", "Snowpoint Gym (Candice)", "Sunyshore Gym (Volkner)"
+  ],
+  Unova: [
+    "Striaton Gym (Cilan/Chili/Cress)", "Nacrene Gym (Lenora)", "Castelia Gym (Burgh)", "Nimbasa Gym (Elesa)",
+    "Driftveil Gym (Clay)", "Mistralton Gym (Skyla)", "Icirrus Gym (Brycen)", "Opelucid Gym (Drayden/Iris)"
+  ],
+  Kalos: [
+    "Santalune Gym (Viola)", "Cyllage Gym (Grant)", "Shalour Gym (Korrina)", "Coumarine Gym (Ramos)",
+    "Lumiose Gym (Clemont)", "Laverre Gym (Valerie)", "Anistar Gym (Olympia)", "Snowbelle Gym (Wulfric)"
+  ],
+  Alola: [
+    // Alola has trials, not gyms, but here are the kahunas/captains
+    "Melemele Island Trial (Ilima)", "Melemele Kahuna (Hala)",
+    "Akala Island Trial (Lana)", "Akala Island Trial (Kiawe)", "Akala Island Trial (Mallow)", "Akala Kahuna (Olivia)",
+    "Ula'ula Island Trial (Sophocles)", "Ula'ula Island Trial (Acerola)", "Ula'ula Kahuna (Nanu)",
+    "Poni Island Trial (Mina)", "Poni Kahuna (Hapu)"
+  ],
+  Galar: [
+    "Turffield Gym (Milo)", "Hulbury Gym (Nessa)", "Motostoke Gym (Kabu)", "Stow-on-Side Gym (Bea/Allister)",
+    "Ballonlea Gym (Opal)", "Circhester Gym (Gordie/Melony)", "Spikemuth Gym (Piers)", "Hammerlocke Gym (Raihan)"
+  ],
+  Paldea: [
+    "Cortondo Gym (Katy)", "Artazon Gym (Brassius)", "Levincia Gym (Iono)", "Cascarrafa Gym (Kofu)",
+    "Medali Gym (Larry)", "Montenevera Gym (Ryme)", "Alfornada Gym (Tulip)", "Glaseado Gym (Grusha)"
+  ]
+};
+
+const eliteFour = {
+  Kanto:   ["Elite Four Lorelei", "Elite Four Bruno", "Elite Four Agatha", "Elite Four Lance"],
+  Johto:   ["Elite Four Will", "Elite Four Koga", "Elite Four Bruno", "Elite Four Karen"],
+  Hoenn:   ["Elite Four Sidney", "Elite Four Phoebe", "Elite Four Glacia", "Elite Four Drake"],
+  Sinnoh:  ["Elite Four Aaron", "Elite Four Bertha", "Elite Four Flint", "Elite Four Lucian"],
+  Unova:   ["Elite Four Shauntal", "Elite Four Marshal", "Elite Four Grimsley", "Elite Four Caitlin"],
+  Kalos:   ["Elite Four Malva", "Elite Four Siebold", "Elite Four Wikstrom", "Elite Four Drasna"],
+  Alola:   ["Elite Four Hala", "Elite Four Olivia", "Elite Four Acerola", "Elite Four Kahili"],
+  Galar:   ["Elite Four (Tournament-style—use Champion Cup Rivals)"],
+  Paldea:  ["Elite Four Rika", "Elite Four Poppy", "Elite Four Larry", "Elite Four Hassel"]
+};
+
+const champions = {
+  Kanto:   ["Champion Blue"],
+  Johto:   ["Champion Lance"],
+  Hoenn:   ["Champion Wallace"],
+  Sinnoh:  ["Champion Cynthia"],
+  Unova:   ["Champion Iris"],
+  Kalos:   ["Champion Diantha"],
+  Alola:   ["Champion Elio"],
+  Galar:   ["Champion Leon"],
+  Paldea:  ["Champion Geeta"]
+};
+
+// --- Add all to the faction list ---
+for (const region of Object.keys(gymLeaders)) {
+  for (const gym of gymLeaders[region]) {
+    if (!state.factions[gym]) state.factions[gym] = { reputation: 0, known: false };
+  }
+  for (const e4 of eliteFour[region]) {
+    if (!state.factions[e4]) state.factions[e4] = { reputation: 0, known: false };
+  }
+  for (const champ of champions[region]) {
+    if (!state.factions[champ]) state.factions[champ] = { reputation: 0, known: false };
+  }
+}
+
+
+// --- Prize and Penalty Logic for Battles ---
+
+// Utility: Grant rewards for defeating a generic Trainer
+function grantTrainerBattlePrize(trainerName, isBoss = false) {
+  // Prize scale: bosses give more, random variance for flavor
+  const baseMoney = isBoss ? 3000 : 1000;
+  const moneyWon = baseMoney + Math.floor(Math.random() * (isBoss ? 2000 : 1000));
+  const possibleItems = isBoss
+    ? ["Full Restore", "Revive", "Max Potion", "Rare Candy"]
+    : ["Potion", "Great Ball", "Antidote", "Super Potion"];
+  const item = Math.random() < (isBoss ? 0.7 : 0.3)
+    ? possibleItems[Math.floor(Math.random() * possibleItems.length)]
+    : null;
+  // Award
+  state.pokeDollars = (state.pokeDollars || 0) + moneyWon;
+  state.inventory = state.inventory || {};
+  if (item) state.inventory[item] = (state.inventory[item] || 0) + 1;
+  state.trainerLog = state.trainerLog || [];
+  state.trainerLog.push(
+    `Defeated ${trainerName}! Gained ${moneyWon} PokéDollars${item ? ` and a ${item}` : ""}.`
+  );
+}
+
+// Utility: Penalty for losing a battle
+function applyBattleLossPenalty(opponentName) {
+  // Typical main games take half of player's money on loss, but here we soften it
+  const lostMoney = Math.floor((state.pokeDollars || 0) * 0.20); // Lose 20%
+  state.pokeDollars = Math.max(0, (state.pokeDollars || 0) - lostMoney);
+  state.trainerLog = state.trainerLog || [];
+  state.trainerLog.push(
+    `Lost to ${opponentName}! Dropped ${lostMoney} PokéDollars in the rush to escape.`
+  );
+}
+
+// Utility: Grant Gym Leader badge, money, and item reward
+function grantGymLeaderPrize(leaderName, badgeName, region = "Kanto") {
+  // Badge tracking
+  state.badges = state.badges || {};
+  if (!state.badges[badgeName]) {
+    state.badges[badgeName] = true;
+    state.badgeCount = (state.badgeCount || 0) + 1;
+  }
+  // Money and prize
+  const gymMoney = 5000 + Math.floor(Math.random() * 3000);
+  state.pokeDollars = (state.pokeDollars || 0) + gymMoney;
+  state.inventory = state.inventory || {};
+  // Give region-themed TM as reward (customize for each region if you want)
+  const badgePrizes = {
+    "Kanto":   ["TM34 (Shock Wave)", "TM28 (Dig)", "TM24 (Thunderbolt)", "TM29 (Psychic)"],
+    "Johto":   ["TM30 (Shadow Ball)", "TM31 (Mud-Slap)", "TM23 (Iron Tail)", "TM16 (Icy Wind)"],
+    "Hoenn":   ["TM40 (Aerial Ace)", "TM42 (Facade)", "TM04 (Calm Mind)", "TM11 (Sunny Day)"],
+    "Sinnoh":  ["TM76 (Stealth Rock)", "TM60 (Drain Punch)", "TM54 (False Swipe)", "TM65 (Shadow Claw)"],
+    "Unova":   ["TM83 (Work Up)", "TM67 (Retaliate)", "TM84 (Poison Jab)", "TM72 (Volt Switch)"],
+    "Kalos":   ["TM99 (Dazzling Gleam)", "TM94 (Surf)", "TM100 (Confide)", "TM77 (Psych Up)"],
+    "Alola":   ["TM43 (Flame Charge)", "TM41 (Torment)", "TM87 (Swagger)", "TM79 (Frost Breath)"],
+    "Galar":   ["TM80 (Volt Switch)", "TM08 (Hyper Beam)", "TM85 (Dream Eater)", "TM98 (Stomping Tantrum)"],
+    "Paldea":  ["TM136 (Electric Terrain)", "TM138 (Grassy Terrain)", "TM140 (Misty Terrain)", "TM142 (Psychic Terrain)"],
+    "Orre":    ["TM26 (Earthquake)", "TM01 (Focus Punch)", "TM12 (Taunt)", "TM06 (Toxic)"]
+  };
+  const tmRewardList = badgePrizes[region] || badgePrizes["Kanto"];
+  const tmReward = tmRewardList[Math.floor(Math.random() * tmRewardList.length)];
+  state.inventory[tmReward] = (state.inventory[tmReward] || 0) + 1;
+  state.trainerLog = state.trainerLog || [];
+  state.trainerLog.push(
+    `Defeated Gym Leader ${leaderName}! Earned the ${badgeName}, ${gymMoney} PokéDollars, and ${tmReward}.`
+  );
+}
+
+// --- Usage Examples ---
+// grantTrainerBattlePrize("Youngster Joey");
+// applyBattleLossPenalty("Aroma Lady Mia");
+// grantGymLeaderPrize("Brock", "Boulder Badge", "Kanto");
+
+// --- Elite Four and Champion Battle Rewards ---
+
+function grantEliteFourPrize(memberName, region = "Kanto") {
+  const moneyWon = 10000 + Math.floor(Math.random() * 5000);
+  state.pokeDollars = (state.pokeDollars || 0) + moneyWon;
+  state.inventory = state.inventory || {};
+  // Reward: rare items and TMs
+  const elitePrizes = {
+    "Kanto":   ["Full Restore", "Max Revive", "TM36 (Sludge Bomb)"],
+    "Johto":   ["Full Restore", "Max Elixir", "TM41 (Torment)"],
+    "Hoenn":   ["Max Potion",   "Revive",     "TM53 (Energy Ball)"],
+    "Sinnoh":  ["Full Restore", "PP Up",      "TM65 (Shadow Claw)"],
+    "Unova":   ["Max Revive",   "Max Ether",  "TM44 (Rest)"],
+    "Kalos":   ["Full Restore", "Max Elixir", "TM99 (Dazzling Gleam)"],
+    "Alola":   ["Full Restore", "Max Revive", "TM87 (Swagger)"],
+    "Galar":   ["Full Restore", "Max Revive", "TM79 (Frost Breath)"],
+    "Paldea":  ["Full Restore", "Max Elixir", "TM142 (Psychic Terrain)"],
+    "Orre":    ["Max Revive",   "Max Ether",  "TM01 (Focus Punch)"]
+  };
+  const rewards = elitePrizes[region] || elitePrizes["Kanto"];
+  rewards.forEach(item => {
+    state.inventory[item] = (state.inventory[item] || 0) + 1;
+  });
+  state.trainerLog = state.trainerLog || [];
+  state.trainerLog.push(
+    `Defeated Elite Four member ${memberName}! Gained ${moneyWon} PokéDollars and items: ${rewards.join(", ")}.`
+  );
+}
+
+function grantChampionPrize(championName, region = "Kanto") {
+  // Champion gives a huge sum and unique items/Pokémon
+  const moneyWon = 25000 + Math.floor(Math.random() * 10000);
+  state.pokeDollars = (state.pokeDollars || 0) + moneyWon;
+  state.inventory = state.inventory || {};
+  // Champion special rewards (TMs or rare Pokémon egg!)
+  const championPrizes = {
+    "Kanto":   ["TM50 (Overheat)", "Rare Candy", "Master Ball", "Eevee Egg"],
+    "Johto":   ["TM26 (Earthquake)", "Master Ball", "Lucky Egg", "Togepi Egg"],
+    "Hoenn":   ["TM02 (Dragon Claw)", "Master Ball", "Beldum Egg"],
+    "Sinnoh":  ["TM92 (Trick Room)", "Master Ball", "Riolu Egg"],
+    "Unova":   ["TM54 (False Swipe)", "Master Ball", "Axew Egg"],
+    "Kalos":   ["TM44 (Rest)", "Master Ball", "Honedge Egg"],
+    "Alola":   ["TM53 (Energy Ball)", "Master Ball", "Rockruff Egg"],
+    "Galar":   ["TM08 (Hyper Beam)", "Master Ball", "Toxel Egg"],
+    "Paldea":  ["TM142 (Psychic Terrain)", "Master Ball", "Fuecoco Egg"],
+    "Orre":    ["TM26 (Earthquake)", "Master Ball", "Larvitar Egg"]
+  };
+  const rewards = championPrizes[region] || championPrizes["Kanto"];
+  rewards.forEach(item => {
+    state.inventory[item] = (state.inventory[item] || 0) + 1;
+  });
+  state.trainerLog = state.trainerLog || [];
+  state.trainerLog.push(
+    `Defeated Champion ${championName}! Received ${moneyWon} PokéDollars, a Master Ball, and items: ${rewards.join(", ")}!`
+  );
+}
+
+// --- Example Usage ---
+// grantEliteFourPrize("Agatha", "Kanto");
+// grantChampionPrize("Lance", "Johto");
+
+
+// --- Colosseum Progress Tracker ---
+if (!state.colosseumProgress) {
+  state.colosseumProgress = {
+    "Phenac Colosseum": false,
+    "Pyrite Colosseum": false,
+    "Agate Colosseum": false,
+    "Realgam Tower": false,
+    "Deep Colosseum": false, 
+    "Under Colosseum": false,
+  };
+}
+
+// --- Mt. Battle Progress ---
+if (!state.mtBattle) {
+  state.mtBattle = {
+    currentZone: 1,             // 1–10 (each zone is 10 trainers)
+    currentTrainer: 1,          // 1–10 within current zone
+    maxZoneReached: 1,
+    totalTrainersDefeated: 0,
+    completed: false
+  };
+}
+
+// --- Orre Gym Badge Replacement ---
+if (state.region === "Orre") {
+  state.hasColosseumChallenge = true;
+  state.hasMtBattleChallenge = true;
+  state.hasGyms = false; // disables badge logic
+}
+
+// --- Orre Colosseum Prizes ---
+const colosseumPrizes = {
+  "Phenac Colosseum": [
+    { item: "TM27 (Return)",       credits: 2000 },
+    { item: "Quick Claw",          credits: 0 },
+    { item: "TM01 (Focus Punch)",  credits: 3000 }
+  ],
+  "Pyrite Colosseum": [
+    { item: "TM06 (Toxic)",        credits: 2500 },
+    { item: "Black Glasses",       credits: 0 },
+    { item: "TM12 (Taunt)",        credits: 3500 }
+  ],
+  "Agate Colosseum": [
+    { item: "TM19 (Giga Drain)",   credits: 3000 },
+    { item: "Miracle Seed",        credits: 0 },
+    { item: "Lum Berry",           credits: 0 }
+  ],
+  "Realgam Tower": [
+    { item: "Master Ball",         credits: 5000 },
+    { item: "Scope Lens",          credits: 0 },
+    { item: "TM26 (Earthquake)",   credits: 5000 }
+  ],
+  // Optional: add Deep Colosseum, Under Colosseum etc
+};
+
+// Utility: Get a random prize for a Colosseum, weighted toward unclaimed
+function getColosseumPrize(colosseum) {
+  const prizes = colosseumPrizes[colosseum];
+  if (!prizes) return null;
+  // For simplicity, just random for now; can track claim history per player if you wish
+  return prizes[Math.floor(Math.random() * prizes.length)];
+}
+
+// Grant Prize Example
+function grantColosseumPrize(colosseum) {
+  const prize = getColosseumPrize(colosseum);
+  if (!prize) return;
+  // Grant item
+  state.inventory = state.inventory || {};
+  if (prize.item) {
+    state.inventory[prize.item] = (state.inventory[prize.item] || 0) + 1;
+  }
+  // Grant PokéDollars/money
+  state.pokeDollars = (state.pokeDollars || 0) + (prize.credits || 0);
+  // Optional: Add message/log
+  state.trainerLog = state.trainerLog || [];
+  state.trainerLog.push(
+    `Received ${prize.item || ""}${prize.credits ? ` and ${prize.credits} PokéDollars` : ""} for winning at ${colosseum}!`
+  );
+} // <-- THIS LINE WAS MISSING!
+
+// --- Mt. Battle Prize Table ---
+const mtBattleMilestonePrizes = {
+  3:  { item: "TM31 (Brick Break)",   credits: 3000 },   // After Zone 3
+  5:  { item: "Exp. Share",           credits: 4000 },
+  7:  { item: "Lucky Egg",            credits: 6000 },
+  10: { item: "Rare Pokémon (Starter)", credits: 0 },    // Completing all 100
+};
+
+// Utility: Grant prize for clearing a Mt. Battle zone
+function grantMtBattlePrize(zone) {
+  const prize = mtBattleMilestonePrizes[zone];
+  if (!prize) return;
+  state.inventory = state.inventory || {};
+  if (prize.item && !prize.item.includes("Pokémon")) {
+    state.inventory[prize.item] = (state.inventory[prize.item] || 0) + 1;
+  }
+  if (prize.credits) {
+    state.pokeDollars = (state.pokeDollars || 0) + prize.credits;
+  }
+  if (prize.item && prize.item.includes("Pokémon")) {
+    // Trigger event to pick or grant a starter, e.g. Treecko/Torchic/Mudkip
+    state.pendingEvent = "Choose Mt. Battle Starter";
+  }
+  state.trainerLog = state.trainerLog || [];
+  state.trainerLog.push(`Received ${prize.item || ""}${prize.credits ? ` and ${prize.credits} PokéDollars` : ""} for reaching Mt. Battle Zone ${zone}!`);
+}
+
+
+// --- Shadow Pokémon Tracker ---
+if (!state.shadowPokemon) state.shadowPokemon = {};
+
+// Only encounter Shadow Pokémon in Orre!
+function canEncounterShadowPokemon() {
+  return state.region === "Orre";
+}
+
+function getRandomShadowMoves() {
+  const possibleShadowMoves = [
+    "Shadow Rush", "Shadow Blitz", "Shadow Rave", "Shadow Wave", "Shadow Break"
+  ];
+  const count = 1 + Math.floor(Math.random() * 2); // 1 or 2 moves
+  // Ensure unique moves
+  return Array.from(
+    {length: count},
+    () => possibleShadowMoves[Math.floor(Math.random() * possibleShadowMoves.length)]
+  );
+}
+
+function maybeShadowPokemon(name, baseDetails = {}) {
+  if (!canEncounterShadowPokemon()) return false;
+  if (Math.random() < 0.10) { // 10% chance per trainer encounter
+    if (!state.shadowPokemon[name]) {
+      state.shadowPokemon[name] = {
+        originalTrainer: "Cipher",
+        shadowLevel: 100,
+        heartGauge: 5,
+        knownShadowMoves: getRandomShadowMoves(),
+        purified: false,
+        snaggedFrom: "Cipher",
+        notes: "Shadow aura is thick and aggressive.",
+        lastPurifiedBy: null,
+        locationSnagged: state.location,
+        lastPurifiedDay: null,
+        ...baseDetails
+      };
+    }
+    return true;
+  }
+  return false;
+}
+
+// --- Snag Machine Logic ---
+if (state.region === "Orre" && !state.keyItems?.SnagMachine) {
+  state.keyItems = state.keyItems || {};
+  state.keyItems.SnagMachine = true; // Event: Award to player on Orre start or story trigger
+}
+function canSnagPokemon() {
+  return state.region === "Orre" && state.keyItems?.SnagMachine === true;
+}
+
+// --- Wild Pokémon Lure System for Orre ---
+const orreLureLocations = [
+  "Outskirt Stand", "Agate Forest", "PokeSpot Cave", "PokeSpot Rock", "PokeSpot Oasis"
+];
+function canLureWildPokemon() {
+  return state.region === "Orre" && orreLureLocations.includes(state.location);
+}
+
+// --- Purification Logic ---
+function decreaseHeartGauge(name, amount = 1) {
+  if (state.shadowPokemon[name]) {
+    state.shadowPokemon[name].heartGauge = Math.max(0, state.shadowPokemon[name].heartGauge - amount);
+    // If heartGauge is 0, ready for purification!
+    if (state.shadowPokemon[name].heartGauge === 0) {
+      state.shadowPokemon[name].readyForPurification = true;
+    }
+  }
+}
+// Use Relic Stone in Agate Village for purification
+function canPurify(name) {
+  return state.location === "Agate Village" && state.shadowPokemon[name]?.readyForPurification;
+}
+
+// --- Colosseum Progress Utility ---
+function getOrreProgressSummary() {
+  const colosseums = Object.entries(state.colosseumProgress)
+    .map(([name, cleared]) => `${name}: ${cleared ? "Cleared" : "Not Cleared"}`)
+    .join("\n");
+  const mt = state.mtBattle
+    ? `Mt. Battle: Zone ${state.mtBattle.currentZone}, Trainer ${state.mtBattle.currentTrainer}`
+    : "Mt. Battle: Not started";
+  return `Orre Colosseum Progress:\n${colosseums}\n${mt}`;
+}
+
+// --- Example: Challenge Complete Trigger ---
+function completeColosseum(name) {
+  if (state.colosseumProgress[name] !== undefined) {
+    state.colosseumProgress[name] = true;
+    // Grant reward, story event, or unlock higher-level Shadow Pokémon
+  }
+}
+function advanceMtBattle(zone, trainer) {
+  state.mtBattle.currentZone = zone;
+  state.mtBattle.currentTrainer = trainer;
+  if (zone === 10 && trainer === 10) {
+    state.mtBattle.completed = true;
+    // Special reward: Hoenn starter, rare TM, or unique Shadow Pokémon
+  }
+}
+
+// --- Optional: Prevent badge event triggers in Orre ---
+if (state.region === "Orre") {
+  state.badges = {};
+  state.badgeCount = 0;
+}
+
+
+  const regionalDexDesigns = {
+  "Kanto":   "Original Red Flip-Open (Iconic, simple and robust)",
+  "Johto":   "Compact Slide-Out (Analog interface, retro-futuristic feel)",
+  "Hoenn":   "Rectangular Tablet (Early touchscreen, weather/radar functions)",
+  "Sinnoh":  "Foldable PDA (Thick, industrial, high-data capacity)",
+  "Unova":   "Bifold HUD (Augmented reality, translucent overlay display)",
+  "Kalos":   "Holocaster-based Scanner (Holographic interface, stylish and elegant)",
+  "Alola":   "Rotom Dex with voice AI (Sentient, animated, smart assistant personality)",
+  "Galar":   "Rotom Phone Dex (Smartphone-inspired, built-in AR, multi-apps)",
+  "Paldea":  "Flying Drone Camera Dex (Follows you, hovers and records, high-res imagery)",
+  "Orre":    "Secure Digital Handheld (Rugged, anti-tamper, Shadow Pokémon detection)",
+  };
+
+ const currentDexStyle = regionalDexDesigns[state.region] || "Unknown Device";
+
+const dexSpeak = (species, description = "") => {
+  return `📟 [${currentDexStyle}] "${species}. ${description}"`;
+};
+
+
+
+  const updatePokedex = (species, evolution = false) => {
+    if (!state.pokedex.entries[species]) {
+      state.pokedex.entries[species] = {
+        name: species,
+        seen: true,
+        caught: false
+      };
+    }
+
+    if (!state.pokedex.entries[species].caught) {
+      state.pokedex.entries[species].caught = true;
+      state.pokedex.totalCaught++;
+      output.push(`Dex Entry Registered: ${species}!`);
+    }
+
+    if (evolution && !state.pokedex.unlockedEvolutions.has(species)) {
+      state.pokedex.unlockedEvolutions.add(species);
+      output.push(`Pokedex Update: Evolutionary data unlocked for ${species}.`);
+    }
+
+    if (
+      state.pokedex.totalCaught === 30 &&
+      state.pokedex.version === "Kanto-Dex"
+    ) {
+      state.pokedex.version = "National-Dex";
+      output.push("Your Pokédex has been upgraded to the National Dex!");
+    }
+  };
+
+  // === Debug Command Handling ===
+if (text.trim().toLowerCase() === "!debug") {
+  debugState();
+  return { text: "(Debug state printed to console)" };
+}
+
+// === Debug State Logger ===
+globalThis.debugState = () => {
+  console.log("=== DEBUG STATE ===");
+  console.log("Region:", state.region);
+  console.log("Location:", state.location);
+  console.log("Time of Day:", state.timeOfDay);
+  console.log("Towns:", state.towns);
+  console.log("Reputation:", state.reputation);
+  console.log("Bond Levels:", state.pokemonBond);
+  console.log("Pokemon Data:", state.pokemonData);
+  console.log("Biomes:", state.biomes);
+  console.log("Factions:", state.factions);
+  console.log("Legends:", state.legends);
+  console.log("Unlocked NPCs:", state.unlockedNPCs);
+  console.log("Player Flags:", state.flags);
+  console.log("Global Events:", state.globalEvents);
+  console.log("Evolved Pokémon:", Object.fromEntries(
+    Object.entries(state.pokemonData).filter(([name, data]) => data.evolvedTo)
+  ));
+  console.log("====================");
+};
+
+const regionWilds = {
+    "Kanto": {
+    "Forest": [
+      "Pidgey", "Caterpie", "Metapod", "Butterfree", "Weedle", "Kakuna", "Beedrill",
+      "Oddish", "Gloom", "Vileplume", "Paras", "Parasect", "Bellsprout", "Weepinbell", "Victreebel",
+      "Exeggcute", "Exeggutor", "Venonat", "Venomoth", "Tangela", "Pinsir", "Scyther"
+    ],
+    "Mountain": [
+      "Geodude", "Graveler", "Golem", "Zubat", "Golbat", "Machop", "Machoke", "Machamp",
+      "Onix", "Cubone", "Marowak", "Rhyhorn", "Rhydon", "Kangaskhan", "Clefairy", "Clefable",
+      "Hitmonlee", "Hitmonchan", "Aerodactyl"
+    ],
+    "Cave": [
+      "Zubat", "Golbat", "Onix", "Geodude", "Graveler", "Machop", "Machoke", "Clefairy",
+      "Clefable", "Jigglypuff", "Wigglytuff", "Paras", "Parasect", "Sandshrew", "Sandslash",
+      "Mankey", "Primeape", "Diglett", "Dugtrio", "Haunter", "Gastly", "Gengar"
+    ],
+    "Water": [
+      "Magikarp", "Gyarados", "Tentacool", "Tentacruel", "Psyduck", "Golduck", "Poliwag",
+      "Poliwhirl", "Poliwrath", "Horsea", "Seadra", "Krabby", "Kingler", "Shellder", "Cloyster",
+      "Slowpoke", "Slowbro", "Seel", "Dewgong", "Staryu", "Starmie", "Lapras", "Dratini", "Dragonair"
+    ],
+    "Safari": [
+      "Nidoran♀", "Nidorina", "Nidoran♂", "Nidorino", "Exeggcute", "Rhyhorn", "Kangaskhan",
+      "Scyther", "Pinsir", "Tauros", "Chansey", "Venomoth", "Parasect", "Doduo", "Dodrio"
+    ],
+    "Urban": [
+      "Meowth", "Persian", "Grimer", "Muk", "Magnemite", "Magneton", "Voltorb", "Electrode",
+      "Koffing", "Weezing", "Porygon", "Jigglypuff", "Mr. Mime"
+    ],
+    "Route": [
+      "Sandshrew", "Ekans", "Growlithe", "Vulpix", "Mankey", "Machop", "Oddish", "Bellsprout",
+      "Abra", "Drowzee", "Pidgey", "Spearow", "Rattata", "Raticate", "Nidoran♂", "Nidoran♀",
+      "Doduo", "Farfetch’d"
+    ],
+    "Rare": [
+      "Snorlax", "Lapras", "Dratini", "Dragonair", "Porygon", "Chansey", "Hitmonlee",
+      "Hitmonchan", "Aerodactyl"
+    ],
+    "Plains": [
+      "Rattata", "Raticate", "Spearow", "Fearow", "Pidgeot"
+    ],
+    "Volcanic": [
+      "Charmander", "Charmeleon", "Charizard"
+    ]
+  },
+    "Johto": {
+    "Forest": [
+      "Hoothoot", "Spinarak", "Pineco", "Heracross", "Ledyba", "Caterpie", "Metapod",
+      "Butterfree", "Weedle", "Kakuna", "Beedrill"
+    ],
+    "Mountain": [
+      "Phanpy", "Donphan", "Mareep", "Flaaffy", "Magcargo", "Slugma", "Ursaring",
+      "Teddiursa", "Skarmory"
+    ],
+    "Cave": [
+      "Zubat", "Golbat", "Wooper", "Quagsire", "Onix", "Sneasel", "Gligar", "Wobbuffet"
+    ],
+    "Water": [
+      "Marill", "Wooper", "Quagsire", "Remoraid", "Octillery", "Tentacool",
+      "Tentacruel", "Qwilfish", "Chinchou", "Lanturn", "Magikarp"
+    ],
+    "Urban": [
+      "Meowth", "Aipom", "Magnemite", "Grimer", "Muk", "Koffing", "Slugma"
+    ],
+    "Routes": [
+      "Sentret", "Furret", "Hoppip", "Skiploom", "Yanma", "Snubbull", "Miltank",
+      "Girafarig", "Dunsparce", "Stantler", "Natu", "Xatu", "Farfetch’d", "Tauros"
+    ],
+    "Safari Zone": [
+      "Larvitar", "Natu", "Wobbuffet", "Girafarig", "Shuckle", "Psyduck", "Slowpoke",
+      "Venonat", "Exeggcute", "Paras", "Scyther", "Pinsir", "Chansey"
+    ],
+    "Rare": [
+      "Togepi", "Elekid", "Magby", "Pichu", "Tyrogue", "Smeargle", "Misdreavus",
+      "Sneasel", "Delibird", "Houndour"
+    ]
+  },
+    "Hoenn": {
+    "Forest": [
+      "Wurmple", "Silcoon", "Cascoon", "Beautifly", "Dustox", "Taillow", "Wingull",
+      "Seedot", "Lotad", "Nincada", "Slakoth", "Shroomish"
+    ],
+    "Mountain": [
+      "Numel", "Torkoal", "Machop", "Aron", "Lairon", "Spoink", "Spinda",
+      "Trapinch", "Baltoy"
+    ],
+    "Cave": [
+      "Zubat", "Golbat", "Sableye", "Mawile", "Whismur", "Loudred", "Aron", "Meditite"
+    ],
+    "Water": [
+      "Tentacool", "Wingull", "Pelipper", "Carvanha", "Sharpedo", "Wailmer",
+      "Wailord", "Barboach", "Whiscash", "Corphish", "Feebas", "Magikarp"
+    ],
+    "Urban": [
+      "Electrike", "Voltorb", "Plusle", "Minun", "Skitty", "Gulpin", "Kecleon"
+    ],
+    "Routes": [
+      "Zigzagoon", "Linoone", "Poochyena", "Mightyena", "Ralts", "Marill", "Roselia",
+      "Swablu", "Surskit", "Makuhita", "Illumise", "Volbeat", "Meditite", "Numel"
+      ],
+    "Safari Zone": [
+      "Pikachu", "Oddish", "Doduo", "Natu", "Wobbuffet", "Gloom", "Heracross",
+      "Phanpy", "Girafarig", "Rhyhorn", "Dodrio", "Pinsir"
+    ],
+    "Rare": [ 
+      "Absol", "Bagon", "Beldum", "Chimecho", "Tropius", "Castform", "Lunatone",
+      "Solrock", "Zangoose", "Seviper"
+    ]
+  },
+   "Sinnoh": {
+    "Forest": [
+      "Bidoof", "Kricketot", "Budew", "Burmy", "Cherubi", "Wurmple",
+      "Silcoon", "Beautifly", "Cascoon", "Dustox", "Combee"
+    ],
+    "Mountain": [
+      "Machop", "Machoke", "Geodude", "Graveler", "Bronzor", "Chingling",
+      "Meditite", "Medicham", "Snover"
+    ],
+    "Cave": [
+      "Zubat", "Golbat", "Geodude", "Onix", "Bronzor", "Chingling",
+      "Meditite", "Gible", "Nosepass"
+    ],
+    "Water": [
+      "Magikarp", "Barboach", "Whiscash", "Shellos", "Gastrodon", "Buizel", "Floatzel",
+      "Finneon", "Lumineon", "Remoraid", "Octillery"
+    ],
+    "Urban": [
+      "Pachirisu", "Mime Jr.", "Stunky", "Glameow", "Kricketot", "Bidoof", "Chatot"
+    ],
+    "Routes": [
+      "Starly", "Staravia", "Bidoof", "Bibarel", "Shinx", "Luxio", "Kricketune",
+      "Ponyta", "Roselia", "Buizel", "Shellos", "Gastrodon", "Machop", "Meditite"
+    ],
+    "Safari Zone": [
+      "Wooper", "Quagsire", "Marill", "Azurill", "Tropius", "Carnivine", "Barboach",
+      "Skorupi", "Croagunk", "Yanma", "Roselia", "Quagsire", "Kangaskhan"
+    ],
+    "Rare": [
+      "Munchlax", "Spiritomb", "Riolu", "Rotom", "Drifloon", "Gible", "Lucario",
+      "Togekiss", "Froslass", "Gliscor", "Yanmega", "Magnezone", "Probopass"
+    ]
+  },
+    "Unova": {
+    "Forest": [
+      "Sewaddle", "Venipede", "Cottonee", "Petilil", "Pansage",
+      "Foongus", "Deerling", "Swadloon", "Leavanny"
+    ],
+    "Mountain": [
+      "Roggenrola", "Boldore", "Drilbur", "Excadrill", "Gurdurr",
+      "Durant", "Heatmor"
+    ],
+    "Cave": [
+      "Woobat", "Swoobat", "Boldore", "Axew", "Druddigon",
+      "Tynamo", "Joltik", "Galvantula", "Deino"
+    ],
+    "Water": [
+      "Basculin", "Frillish", "Jellicent", "Ducklett", "Swanna",
+      "Alomomola", "Tympole", "Palpitoad", "Seismitoad"
+    ],
+    "Urban": [
+      "Pidove", "Trubbish", "Minccino", "Gothita", "Solosis",
+      "Scraggy", "Zorua", "Audino"
+    ],
+    "Routes": [
+      "Patrat", "Lillipup", "Purrloin", "Blitzle", "Roggenrola",
+      "Sandile", "Darumaka", "Sigilyph", "Yamask", "Deerling",
+      "Emolga", "Zebstrika", "Watchog", "Unfezant"
+    ],
+    "Safari Zone": [
+      "Maractus", "Sandile", "Darumaka", "Dwebble", "Scraggy",
+      "Sigilyph", "Yamask", "Trapinch", "Baltoy", "Cacnea"
+    ],
+    "Rare": [
+      "Axew", "Zorua", "Larvesta", "Volcarona", "Druddigon",
+      "Braviary", "Mandibuzz", "Deino", "Hydreigon", "Haxorus",
+      "Cryogonal", "Stunfisk"
+    ]
+  },
+    "Kalos": {
+    "Forest": [
+      "Fletchling", "Scatterbug", "Pancham", "Bunnelby",
+      "Espurr", "Swirlix", "Spritzee", "Phantump", "Pumpkaboo"
+    ],
+    "Mountain": [
+      "Binacle", "Bergmite", "Amaura", "Tyrunt",
+      "Noibat", "Sneasel", "Snover", "Abomasnow"
+    ],
+    "Cave": [
+      "Woobat", "Noibat", "Carbink", "Roggenrola",
+      "Boldore", "Onix", "Mawile", "Durant"
+    ],
+    "Water": [
+      "Skrelp", "Clauncher", "Luvdisc", "Remoraid",
+      "Octillery", "Binacle", "Lapras", "Dragalge", "Barbaracle"
+    ],
+    "Urban": [
+      "Furfrou", "Espurr", "Honedge", "Inkay",
+      "Helioptile", "Pikachu", "Meowstic"
+    ],
+    "Routes": [
+      "Bunnelby", "Fletchling", "Skiddo", "Helioptile",
+      "Flabébé", "Espurr", "Pancham", "Litleo", "Vivillon",
+      "Doduo", "Sigilyph", "Zangoose", "Seviper"
+    ],
+    "Safari Zone": [
+      "Hawlucha", "Tropius", "Heracross", "Pinsir",
+      "Nosepass", "Nincada", "Electabuzz", "Magmar",
+      "Pikachu", "Ditto", "Dedenne", "Eevee"
+    ],
+    "Rare": [
+      "Goodra", "Goomy", "Noivern", "Aegislash",
+      "Sylveon", "Dragalge", "Talonflame", "Vivillon (Rare Patterns)",
+      "Aurorus", "Tyrantrum", "Malamar", "Meowstic (Male/Female Split)"
+    ]
+  },
+    "Alola": {
+      "Forest": [
+      "Rowlet", "Fomantis", "Morelull", "Bounsweet",
+      "Grubbin", "Caterpie", "Pikipek", "Trumbeak",
+      "Jangmo-o"
+    ],
+    "Mountain": [
+      "Rockruff", "Rufflet", "Vullaby", "Gible",
+      "Gabite", "Hakamo-o", "Kommo-o", "Lycanroc"
+    ],
+    "Cave": [
+      "Zubat", "Noibat", "Salandit", "Diglett (Alolan)",
+      "Roggenrola", "Carbink", "Sableye", "Golbat"
+    ],
+    "Water": [
+      "Wishiwashi", "Finneon", "Luvdisc", "Corsola",
+      "Dewpider", "Mareanie", "Bruxish", "Sharpedo",
+      "Lapras"
+    ],
+    "Urban": [
+      "Yungoos", "Alolan Rattata", "Meowth (Alolan)",
+      "Magnemite", "Porygon", "Grimer (Alolan)", "Trubbish"
+      ],
+    "Routes": [
+      "Pikipek", "Grubbin", "Cutiefly", "Furfrou",
+      "Lillipup", "Crabrawler", "Mudbray", "Gumshoos",
+      "Stufful", "Passimian", "Oranguru"
+    ],
+    "Poké Pelago & Island Scan": [
+      "Eevee", "Axew", "Cyndaquil", "Totodile",
+      "Snivy", "Oshawott", "Piplup", "Charmander",
+      "Torchic", "Froakie", "Chikorita", "Beldum"
+    ],
+    "Rare": [
+      "Mimikyu", "Drampa", "Turtonator", "Dhelmise",
+      "Guzzlord", "Cosmog", "Pheromosa", "Buzzwole",
+      "Minior", "Togedemaru", "Kommo-o", "Tapu Koko"
+    ]
+  },
+    "Galar": {
+    "Forest": [
+      "Blipbug", "Nickit", "Wooloo", "Gossifleur",
+      "Applin", "Milcery", "Indeedee", "Sinistea",
+      "Phantump", "Pumpkaboo", "Grubbin"
+    ],
+    "Mountain": [
+      "Rolycoly", "Carkol", "Coalossal", "Timburr",
+      "Noibat", "Axew", "Gurdurr", "Rufflet", "Falinks"
+    ],
+    "Cave": [
+      "Diglett", "Drilbur", "Woobat", "Boldore",
+      "Sableye", "Meowth (Galarian)", "Stonjourner", "Cufant"
+    ],
+    "Water": [
+      "Chewtle", "Arrokuda", "Barraskewda", "Wishiwashi",
+      "Drednaw", "Magikarp", "Remoraid", "Pyukumuku"
+    ],
+    "Urban": [
+      "Zigzagoon (Galarian)", "Meowth (Galarian)", "Trubbish",
+      "Purrloin", "Impidimp", "Koffing", "Mr. Mime (Galarian)",
+      "Toxel", "Weezing (Galarian)"
+    ],
+    "Routes": [
+      "Yamper", "Skwovet", "Rookidee", "Nickit",
+      "Thievul", "Eevee", "Pumpkaboo", "Hatenna",
+      "Farfetch’d (Galarian)", "Clobbopus", "Hattrem"
+    ],
+    "Wild Area": [
+      "Snorlax", "Onix", "Gallade", "Togekiss", "Dreepy",
+      "Duraludon", "Dragapult", "Goodra", "Corviknight",
+      "Excadrill", "Lucario", "Tyranitar"
+    ],
+    "Rare": [
+      "Zacian", "Zamazenta", "Eternatus", "Dragapult",
+      "Runerigus", "Frosmoth", "Darmanitan (Galarian)",
+      "Cursola", "Sirfetch’d", "Obstagoon", "Polteageist",
+      "Grimmsnarl"
+    ]
+  },
+    "Paldea": {
+    "Forest": [
+      "Lechonk", "Smoliv", "Tandemaus", "Scatterbug",
+      "Fidough", "Combee", "Deerling", "Shroodle",
+      "Squawkabilly", "Pineco", "Toedscool", "Pawmi"
+    ],
+    "Mountain": [
+      "Rolycoly", "Larvitar", "Salandit", "Rockruff",
+      "Frigibax", "Bagon", "Carkol", "Orthworm",
+      "Glimmet", "Tinkatink", "Axew", "Lucario"
+    ],
+    "Cave": [
+      "Noibat", "Zubat", "Houndstone", "Greavard",
+      "Gible", "Sableye", "Tinkatuff", "Bramblin",
+      "Varoom", "Bagon", "Tinkaton"
+    ],
+    "Water": [
+      "Wiglett", "Veluza", "Magikarp", "Finizen",
+      "Tatsugiri", "Buizel", "Psyduck", "Clauncher",
+      "Golduck", "Quaxly", "Basculin", "Dondozo"
+    ],
+    "Urban": [
+      "Meowth", "Tandemaus", "Pawmi", "Fidough",
+      "Grimer", "Rotom", "Gimmighoul", "Grafaiai",
+      "Espurr", "Zorua", "Pikachu"
+    ],
+    "Routes": [
+      "Lechonk", "Tarountula", "Hoppip", "Fletchling",
+      "Nacli", "Capsakid", "Rookidee", "Charcadet",
+      "Shroodle", "Tinkatink", "Flamigo", "Wattrel"
+    ],
+    "Great Crater": [
+      "Roaring Moon", "Iron Valiant", "Flutter Mane",
+      "Iron Hands", "Iron Thorns", "Scream Tail",
+      "Iron Jugulis", "Slither Wing", "Iron Bundle"
+    ],
+    "Rare": [
+      "Koraidon", "Miraidon", "Annihilape", "Dudunsparce",
+      "Kingambit", "Baxcalibur", "Gholdengo", "Clodsire",
+      "Armarouge", "Ceruledge", "Palafin (Hero Form)",
+      "Espathra", "Lokix"
+    ]
+  }
+};
+  // === World Reactivity System ===
+const world = {
+  updateTown: (town, status) => {
+    state.towns[town] = status;
+  },
+
+  getTownStatus: (town) => {
+    return state.towns[town] || "unknown";
+  },
+
+  setReputation: (group, value) => {
+    state.reputation[group] = value;
+  },
+
+  increaseReputation: (group, amount = 1) => {
+    if (!state.reputation[group]) state.reputation[group] = 0;
+    state.reputation[group] += amount;
+  },
+
+  decreaseReputation: (group, amount = 1) => {
+    if (!state.reputation[group]) state.reputation[group] = 0;
+    state.reputation[group] -= amount;
+  },
+
+  getReputation: (group) => {
+    return state.reputation[group] || 0;
+  },
+
+  setPokemonBehavior: (species, behavior) => {
+    if (!state.pokemonData[species]) state.pokemonData[species] = {};
+    state.pokemonData[species].behavior = behavior;
+  },
+
+  updateFaction: (faction, data) => {
+    state.factions[faction] = {
+      ...(state.factions[faction] || {}),
+      ...data
+    };
+  },
+
+  getFaction: (faction) => {
+    return state.factions[faction] || {};
+  },
+
+  awakenLegend: (name) => {
+    if (!state.legends[name]) state.legends[name] = {};
+    state.legends[name].awakened = true;
+  },
+
+  enrageLegend: (name) => {
+    if (!state.legends[name]) state.legends[name] = {};
+    state.legends[name].angry = true;
+  },
+
+  calmLegend: (name) => {
+    if (!state.legends[name]) state.legends[name] = {};
+    state.legends[name].angry = false;
+  },
+
+  getLegendStatus: (name) => {
+    return state.legends[name] || { awakened: false, angry: false };
+  },
+
+  setEventState: (event, value = true) => {
+    state.globalEvents[event] = value;
+  },
+
+  getEventState: (event) => {
+    return state.globalEvents[event] || false;
+  },
+
+  discoverFaction: (faction) => {
+    if (state.factions[faction]) {
+      state.factions[faction].known = true;
+    }
+  },
+
+  unlockNPC: (npcName, requiredNature, requiredBond, extraCondition = () => true) => {
+    for (let name in state.pokemonData) {
+      const data = state.pokemonData[name];
+      if (
+        data.hiddenNature === requiredNature &&
+        state.pokemonBond[name] >= requiredBond &&
+        extraCondition(name)
+      ) {
+        state.unlockedNPCs[npcName] = true;
+        if (!data.natureRevealed) {
+          data.natureRevealed = true;
+          output.push(`${name} seems to have a hidden side... it's ${data.hiddenNature}.`);
+        }
+        return true;
+      }
+    }
+    return false;
+  },
+
+  npcUnlocked: (npcName) => {
+    return state.unlockedNPCs?.[npcName] === true;
+  },
+
+  migratePokemon: (biome, pokemonList) => {
+    const allowed = regionWilds[state.region]?.[biome] || [];
+    const filtered = pokemonList.filter(p => allowed.includes(p));
+    state.biomes[biome] = filtered;
+  },
+
+  isForeignPokemon: (species) => {
+    const region = state.region;
+    const regionBiomes = regionWilds[region] || {};
+    return !Object.values(regionBiomes).some(list => list.includes(species));
+  }
+};
+
+// === NPC Perks ===
+const npcPerks = {
+  "Sage Elira": () => {
+    world.setReputation("Mystics", 10);
+    output.push("Sage Elira bestows upon you the *Talisman of Light*. Your connection to Psychic Pokémon has grown.");
+    state.flags.sageEliraGift = true;
+  },
+
+  "Kuro": () => {
+    state.playerShadowBond = (state.playerShadowBond || 0) + 1;
+    output.push("Kuro marks your aura with shadow. Dark-type moves now hit harder when you're under stress.");
+    state.flags.kuroTouched = true;
+  },
+
+  "Professor Astra": () => {
+    if (!state.discoveredTypes) state.discoveredTypes = new Set();
+    ["Fairy", "Steel"].forEach(type => state.discoveredTypes.add(type));
+    output.push("Professor Astra shares forbidden Pokédex pages... Fairy and Steel types are now detectable.");
+    state.flags.astraShared = true;
+  },
+
+  "Guardian Thorne": () => {
+    state.defenseBoostUnlocked = true;
+    output.push("Guardian Thorne teaches you the ancient stance. Allies now take 10% less damage when protected.");
+    state.flags.thorneTaught = true;
+  },
+
+  "Cyrus": () => {
+    state.rivalryEnabled = true;
+    output.push("Cyrus awakens ambition in your team. In rival battles, Pokémon gain bonus crit chance.");
+    state.flags.cyrusBlessing = true;
+  },
+
+  "Sister Mayra": () => {
+    state.pokemonObedienceCap = 999;
+    output.push("Sister Mayra grants you a loyalty seal. All Pokémon will obey you, no matter your badges.");
+    state.flags.mayraBlessing = true;
+  }
+};
+
+// === NPC Unlock Triggers ===
+const npcTriggers = [
+  {
+    name: "Sage Elira",
+    nature: "Empathic",
+    bond: 70,
+    text: "A warm light surrounds the shrine. Sage Elira steps forward, smiling. 'You've built trust with gentleness. I welcome your kind soul.'"
+  },
+  {
+    name: "Kuro",
+    nature: "Vengeful",
+    bond: 60,
+    extraCondition: (name) => state.pokemonData[name]?.lastBattleOutcome === "loss",
+    text: "From the ashes, a cloaked man emerges. 'You carry pain, like me. That pain can shape the world.'"
+  },
+  {
+    name: "Professor Astra",
+    nature: "Curious",
+    bond: 50,
+    extraCondition: (name) => (state.pokemonData[name]?.biomesSeen?.length || 0) >= 3,
+    text: "Professor Astra adjusts her glasses. 'You've wandered far with an inquisitive soul. Allow me to share what I've found.'"
+  },
+  {
+    name: "Guardian Thorne",
+    nature: "Protective",
+    bond: 65,
+    extraCondition: (name) => state.pokemonData[name]?.protectedAlly === true,
+    text: "'You shield others without hesitation,' says Thorne. 'Your heart is brave. I will teach you how to fortify that bond.'"
+  },
+  {
+    name: "Cyrus",
+    nature: "Proud",
+    bond: 60,
+    extraCondition: (name) => state.pokemonData[name]?.consecutiveWins >= 4,
+    text: "Cyrus nods. 'Your partner knows glory — and seeks more. I'll grant you the tools to rise higher still.'"
+  },
+  {
+    name: "Sister Mayra",
+    nature: "Submissive",
+    bond: 55,
+    extraCondition: (name) => state.pokemonData[name]?.obeysCommands === true,
+    text: "Sister Mayra speaks softly. 'Loyalty is a virtue, not a weakness. Let me show you the power of trust.'"
+  }
+];
+
+// === NPC Trigger Evaluation ===
+for (const npc of npcTriggers) {
+  const alreadyUnlocked = world.npcUnlocked(npc.name);
+  if (!alreadyUnlocked) {
+    const justUnlocked = world.unlockNPC(npc.name, npc.nature, npc.bond, npc.extraCondition);
+    if (justUnlocked) {
+      output.push(npc.text);
+      if (npcPerks[npc.name] && !state.flags?.[npc.name + "_perkGiven"]) {
+        npcPerks[npc.name]();
+        if (!state.flags) state.flags = {};
+        state.flags[npc.name + "_perkGiven"] = true;
+      }
+    }
+  }
+}
+
+// battleSystem.js
+
+const battleSystem = {
+  initBattle: (playerName, enemyName) => {
+    const playerStats = generateStats(playerName);
+    const enemyStats = generateStats(enemyName);
+
+    if (!playerStats || !enemyStats) {
+      output.push("⚠️ Error: Missing base stats.");
+      return;
+    }
+
+    state.battle = {
+      player: {
+        name: playerName,
+        hp: playerStats.hp,
+        stats: playerStats,
+        bond: state.pokemonBond[playerName] || 50,
+        personality: state.pokemonData[playerName]?.personality || "Neutral",
+        hiddenNature: state.pokemonData[playerName]?.hiddenNature
+      },
+      enemy: {
+        name: enemyName,
+        hp: enemyStats.hp,
+        stats: enemyStats,
+        wild: true
+      },
+      log: [],
+      battlefield: {
+        terrain: "normal",
+        weather: state.weather || "Clear",
+        statusEffects: []
+      },
+      active: true
+    };
+
+    output.push(`🎬 A wild ${enemyName} appeared! ${playerName}, let's do this!`);
+  },
+
+  command: (text) => {
+    if (!state.battle?.active) {
+      output.push("There's no battle happening right now!");
+      return;
+    }
+
+    const { player, enemy, battlefield } = state.battle;
+    const lowerText = text.toLowerCase();
+    const dodge = /dodge|evade/.test(lowerText);
+    const clash = /intercept|counter|block/.test(lowerText);
+    const moveMatch = lowerText.match(/use\s+(\w+)/i) || lowerText.match(/(\w+)\s*attack/i);
+    const move = moveMatch?.[1]?.toLowerCase() || null;
+
+    let narration = "";
+
+    const bond = player.bond;
+    const obeyChance = Math.min(1, bond / 100 + 0.2);
+    const obeys = Math.random() < obeyChance;
+
+    if (!obeys) {
+      narration += `😕 ${player.name} hesitates, unsure of what to do...\n`;
+      output.push(narration);
+      return;
+    }
+
+    if (dodge) {
+      narration += `🌀 ${player.name} tries to dodge ${enemy.name}'s incoming move! `;
+      const success = Math.random() < 0.5 + bond / 200;
+      narration += success ? "It swiftly evades the attack!" : "But it's not fast enough...";
+    } else if (clash && move) {
+      narration += `💥 ${player.name} charges a ${move} to intercept the enemy's strike!\n`;
+      narration += `⚡ The clash sends shockwaves across the battlefield!`;
+      if (move === "thunderbolt" && battlefield.weather === "Rain") {
+        narration += ` ⚠️ The rain amplifies the electricity!`;
+        state.battle.enemy.hp -= 20;
+      } else {
+        state.battle.enemy.hp -= 10;
+      }
+    } else if (move) {
+      narration += `🎯 ${player.name} uses ${move}!`;
+      state.battle.enemy.hp -= 10 + Math.floor(Math.random() * 10);
+    } else {
+      narration += `${player.name} holds its position, awaiting your orders.`;
+    }
+
+    if (state.battle.enemy.hp <= 0) {
+      narration += ` ✅ ${enemy.name} fainted!`;
+      state.battle.active = false;
+      state.pokemonData[enemy.name] = {
+        ...state.pokemonData[enemy.name],
+        defeated: true
+      };
+    }
+
+    output.push(narration);
+    battleSystem.enemyResponse();
+  },
+
+  enemyResponse: () => {
+    if (!state.battle?.active) return;
+
+    const { player, enemy } = state.battle;
+    const roll = Math.random();
+    const response = roll < 0.4 ? "slashes" : roll < 0.7 ? "uses a ranged attack" : "charges forward";
+
+    output.push(`🔁 ${enemy.name} ${response}!`);
+
+    const dodgeChance = Math.random();
+    if (dodgeChance < 0.3) {
+      output.push(`😎 ${player.name} dodges just in time!`);
+    } else {
+      const damage = 5 + Math.floor(Math.random() * 10);
+      state.battle.player.hp -= damage;
+      output.push(`💢 ${player.name} takes ${damage} damage!`);
+
+      if (state.battle.player.hp <= 0) {
+        output.push(`❌ ${player.name} has fainted!`);
+        state.battle.active = false;
+      }
+    }
+  },
+
+  battlefieldEffect: (effect) => {
+    const battlefield = state.battle?.battlefield;
+    if (!battlefield) return;
+
+    if (!battlefield.statusEffects.includes(effect)) {
+      battlefield.statusEffects.push(effect);
+      output.push(`🌍 Battlefield condition changed: ${effect}!`);
+    }
+  }
+}; // <-- this closes the battleSystem object
+
+const throwPokeball = (ballType = "Poké Ball") => {
+  if (!state.battle || !state.battle.enemy) {
+    output.push("There's no wild Pokémon to catch!");
+    return;
+  }
+
+  const catchRates = {
+    "Poké Ball": 1,
+    "Great Ball": 1.5,
+    "Ultra Ball": 2,
+    "Master Ball": Infinity
+  };
+
+  const ballRate = catchRates[ballType] || 1;
+  const enemy = state.battle.enemy;
+
+  output.push(`🎯 You threw a ${ballType}! A red beam of light pulls ${enemy.name} into the ball...`);
+
+  const hpPercent = enemy.hp / enemy.stats.hp;
+  const baseCatchRate = 0.2 + (1 - hpPercent) * 0.6;
+  const chance = baseCatchRate * ballRate;
+  const roll = Math.random();
+
+  if (roll < chance || ballType === "Master Ball") {
+    output.push(`✅ ...click! You caught ${enemy.name}!`);
+    state.pokemonData[enemy.name] = {
+      ...state.pokemonData[enemy.name],
+      caught: true
+    };
+    state.battle = null;
+  } else {
+    output.push(`💢 ...wiggle... wiggle... ${enemy.name} bursts free!`);
+  }
+};
+
+globalThis.battleSystem = battleSystem;
+globalThis.throwPokeball = throwPokeball;
+
+
+
+// eventSystem.js
+
+const eventSystem = {
+  events: {},
+  triggeredEvents: new Set(),
+
+  registerEvent: (id, config) => {
+    eventSystem.events[id] = config;
+  },
+
+  checkEvents: () => {
+    for (const id in eventSystem.events) {
+      const evt = eventSystem.events[id];
+
+      // Already triggered (non-repeatable)
+      if (!evt.recurring && eventSystem.triggeredEvents.has(id)) continue;
+
+      // Check if trigger condition is met
+      if (evt.triggerCondition(state)) {
+        eventSystem.triggeredEvents.add(id);
+        if (evt.onTrigger) evt.onTrigger();
+        trainerLog.logAuto({ scene: "[World Event]", entry: evt.description });
+      }
+    }
+  },
+
+  getTriggeredEvents: () => {
+    return [...eventSystem.triggeredEvents];
+  },
+
+  resetEvent: (id) => {
+    eventSystem.triggeredEvents.delete(id);
+  }
+};
+
+// Sample Events
+
+// 🔥 Riftwake Surge (Timed + Conditional)
+eventSystem.registerEvent("riftwake_surge", {
+  name: "Riftwake Surge",
+  description: "A spatial distortion tears open in the sky — the Riftwake surges through the world.",
+  recurring: false,
+  triggerCondition: (state) => state.time?.day >= 10 && (state.reputation?.SableTech || 0) < 0,
+  onTrigger: () => {
+    world.setEventState("Riftwake", true);
+    output.push("🔥 The Riftwake stirs... A dimensional surge fractures the skies.");
+  }
+});
+
+// 🌑 Dreamer's Curse (Weather + Time + Pokémon Trait)
+eventSystem.registerEvent("dreamers_curse", {
+  name: "Dreamer's Curse",
+  description: "A vision claws at the edge of your mind. Someone — or something — is watching.",
+  recurring: true,
+  triggerCondition: (state) => {
+    const isNight = state.timeOfDay === "night";
+    const isStormy = ["Storm", "Fog"].includes(state.weather);
+    return isNight && isStormy && Object.values(state.pokemonData || {}).some(p => p.hiddenNature === "Mystic");
+  },
+  onTrigger: () => {
+    output.push("🌑 A disturbing presence enters your dreams. You feel less alone — and less safe.");
+    state.flags.dreamersCurse = true;
+  }
+});
+
+// Export globally
+globalThis.eventSystem = eventSystem;
+
+const sceneEngine = {
+  currentScene: null,
+  previousScenes: [],
+  sceneHistory: [],
+  
+    loadScene: (sceneId, options = {}) => {
+    const scene = sceneEngine.scenes[sceneId];
+    if (!scene) {
+      output.push(`Scene "${sceneId}" not found.`);
+      return;
+    }
+
+    sceneEngine.previousScenes.push(sceneEngine.currentScene);
+    sceneEngine.currentScene = sceneId;
+    sceneEngine.sceneHistory.push({ id: sceneId, timestamp: Date.now(), ...options });
+
+    if (scene.onEnter) scene.onEnter(options);
+  },
+
+  getCurrentScene: () => {
+    return sceneEngine.scenes[sceneEngine.currentScene];
+  }
+};
+
+sceneEngine.rewind = () => {
+  const prev = sceneEngine.previousScenes.pop();
+  if (prev) sceneEngine.loadScene(prev);
+};
+
+sceneEngine.logScene = (sceneId) => {
+  if (!state.trainerLog) state.trainerLog = [];
+  state.trainerLog.push({
+    scene: sceneId,
+    time: new Date().toLocaleString(),
+    region: state.region,
+    location: state.location,
+    bondSnapshot: { ...state.pokemonBond }
+  });
+};
+
+  if (!sceneEngine.scenes) sceneEngine.scenes = {};
+
+world.checkNPCTriggers = () => {
+  if (typeof npcTriggers === "undefined") return;
+
+  for (let npc of npcTriggers) {
+    const unlocked = world.unlockNPC(npc.name, npc.nature, npc.bond, npc.extraCondition);
+    if (unlocked && !world.npcUnlocked(npc.name)) {
+      output.push(npc.text);
+      if (npcPerks[npc.name] && !state.flags?.[npc.name + "_perkGiven"]) {
+        npcPerks[npc.name]();
+        if (!state.flags) state.flags = {};
+        state.flags[npc.name + "_perkGiven"] = true;
+      }
+    }
+  }
+};
+
+const npcMemory = {
+  init: () => {
+    if (!state.npcMemory) state.npcMemory = {};
+  },
+
+  // Create or get memory log for a given NPC
+  get: (npcName) => {
+    if (!state.npcMemory[npcName]) {
+      state.npcMemory[npcName] = {
+        encounters: 0,
+        mood: "neutral", // positive | neutral | negative
+        emotionalTone: [], // logs of "kind", "aggressive", "sarcastic", etc.
+        events: [], // key choices made
+        trust: 0 // can go negative
+        
+      };
+    }
+    return state.npcMemory[npcName];
+  },
+
+  // Record an interaction tone
+  recordTone: (npcName, tone) => {
+    const mem = npcMemory.get(npcName);
+    mem.emotionalTone.push(tone);
+
+    // Adjust mood and trust based on tone
+    if (tone === "kind" || tone === "honest") {
+      mem.trust += 2;
+    } else if (tone === "aggressive" || tone === "rude") {
+      mem.trust -= 2;
+    } else if (tone === "deceptive") {
+      mem.trust -= 1;
+    } else if (tone === "brave" || tone === "protective") {
+      mem.trust += 1;
+    }
+
+    npcMemory.updateMood(npcName);
+  },
+
+  // Record a major decision or choice
+  recordEvent: (npcName, eventLabel, effect = 0) => {
+    const mem = npcMemory.get(npcName);
+    if (!mem.events.includes(eventLabel)) {
+      mem.events.push(eventLabel);
+    }
+    mem.trust += effect;
+    npcMemory.updateMood(npcName);
+  },
+
+  // Called whenever trust changes
+  updateMood: (npcName) => {
+    const mem = npcMemory.get(npcName);
+    const { trust } = mem;
+
+    if (trust >= 10) mem.mood = "friendly";
+    else if (trust >= 3) mem.mood = "warm";
+    else if (trust >= -2) mem.mood = "neutral";
+    else if (trust >= -6) mem.mood = "cold";
+    else mem.mood = "hostile";
+  },
+
+  // Quick summary output
+  showSummary: (npcName) => {
+    const mem = npcMemory.get(npcName);
+    output.push(`📖 Memory of ${npcName}:`);
+    output.push(`• Mood: ${mem.mood}`);
+    output.push(`• Trust: ${mem.trust}`);
+    output.push(`• Encounters: ${mem.encounters}`);
+    output.push(`• Events: ${mem.events.join(", ") || "None"}`);
+    output.push(`• Emotional Tone: ${mem.emotionalTone.slice(-3).join(", ") || "None"}`);
+  },
+
+  // When player meets an NPC
+  onEncounter: (npcName) => {
+    const mem = npcMemory.get(npcName);
+    mem.encounters++;
+    npcMemory.updateMood(npcName);
+  }
+};
+
+globalThis.npcMemory = npcMemory;
+npcMemory.init();
+
+
+ sceneEngine.transition = (nextSceneId, options = {}) => {
+      output.push("...");
+      sceneEngine.logScene(nextSceneId); // Log before transition
+      sceneEngine.loadScene(nextSceneId, options);
+};
+
+const reputationSystem = {
+  init: () => {
+    if (!state.reputation) state.reputation = {};
+    if (!state.reputationLog) state.reputationLog = {};
+  },
+
+  set: (faction, value) => {
+    state.reputation[faction] = value;
+    reputationSystem.logChange(faction, value);
+  },
+
+  increase: (faction, amount = 1, reason = "Unknown") => {
+    if (!state.reputation[faction]) state.reputation[faction] = 0;
+    state.reputation[faction] += amount;
+    reputationSystem.logChange(faction, amount, reason);
+  },
+
+  decrease: (faction, amount = 1, reason = "Unknown") => {
+    if (!state.reputation[faction]) state.reputation[faction] = 0;
+    state.reputation[faction] -= amount;
+    reputationSystem.logChange(faction, -amount, reason);
+  },
+
+  get: (faction) => {
+    return state.reputation[faction] || 0;
+  },
+
+  getStatus: (faction) => {
+    const rep = reputationSystem.get(faction);
+    if (rep >= 80) return "Champion";
+    if (rep >= 60) return "Hero";
+    if (rep >= 40) return "Trusted";
+    if (rep >= 20) return "Friend";
+    if (rep >= 0)  return "Neutral";
+    if (rep >= -20) return "Distrusted";
+    if (rep >= -40) return "Enemy";
+    return "Hunted";
+  },
+
+  logChange: (faction, change, reason = "Unknown") => {
+    if (!state.reputationLog[faction]) state.reputationLog[faction] = [];
+    state.reputationLog[faction].push({
+      timestamp: new Date().toLocaleString(),
+      change,
+      reason
+    });
+
+    const status = reputationSystem.getStatus(faction);
+    output.push(`🧭 Reputation with ${faction}: ${change > 0 ? "+" : ""}${change} (${status}) — Reason: ${reason}`);
+  },
+
+  showSummary: () => {
+    output.push("🌍 Reputation Overview:");
+    for (const faction in state.reputation) {
+      const rep = state.reputation[faction];
+      const status = reputationSystem.getStatus(faction);
+      output.push(`• ${faction}: ${rep} (${status})`);
+    }
+  },
+
+  getHistory: (faction) => {
+    const log = state.reputationLog[faction] || [];
+    if (log.length === 0) {
+      output.push(`No reputation history found for ${faction}.`);
+    } else {
+      output.push(`📜 Reputation History – ${faction}:`);
+      log.slice(-5).forEach(entry => {
+        output.push(`- ${entry.timestamp}: ${entry.change > 0 ? "+" : ""}${entry.change} — ${entry.reason}`);
+      });
+    }
+  }
+};
+
+reputationSystem.init();
+globalThis.reputationSystem = reputationSystem;
+
+
+const trainerLog = {
+  init: () => {
+    if (!state.trainerLog) state.trainerLog = [];
+  },
+
+  // Add automatic log from a scene or system event
+  logAuto: ({ scene = "Unknown", entry = "", includeBond = true }) => {
+    const log = {
+      day: state.time?.day || 1,
+      time: new Date().toLocaleString(),
+      region: state.region,
+      location: state.location,
+      scene,
+      entry,
+    };
+
+    if (includeBond) {
+      log.bondSnapshot = { ...state.pokemonBond };
+    }
+
+    state.trainerLog.push(log);
+    output.push(`📘 Trainer Log updated: ${scene}`);
+  },
+
+  // Player writes a custom log (RP entry)
+  logCustom: (text) => {
+    const log = {
+      day: state.time?.day || 1,
+      time: new Date().toLocaleString(),
+      region: state.region,
+      location: state.location,
+      scene: sceneEngine.currentScene || "Field Note",
+      customEntry: text,
+    };
+
+    state.trainerLog.push(log);
+    output.push("📓 You jot down a note in your Trainer Log.");
+  },
+
+  // Retrieve recent logs (for player recall or NPC memory)
+  getRecentLogs: (count = 3) => {
+    const logs = state.trainerLog.slice(-count);
+    for (let log of logs) {
+      const summary = `Day ${log.day} – ${log.scene} – ${log.region}, ${log.location}`;
+      const entryText = log.entry || log.customEntry || "[No Details]";
+      output.push(`📝 ${summary}\n> ${entryText}`);
+    }
+  },
+
+  // Search for keywords (e.g., to reference if something happened)
+  findLogByKeyword: (keyword) => {
+    const found = state.trainerLog.filter(
+      log => (log.entry?.includes(keyword) || log.customEntry?.includes(keyword))
+    );
+
+    if (found.length === 0) {
+      output.push(`No entries mentioning "${keyword}" were found.`);
+    } else {
+      found.slice(-3).forEach(log => {
+        output.push(`🧾 [${log.time}] ${log.scene} – ${log.location}:\n> ${log.entry || log.customEntry}`);
+      });
+    }
+  },
+
+  // Get full log count
+  count: () => {
+    return state.trainerLog?.length || 0;
+  }
+};
+
+globalThis.trainerLog = trainerLog;
+trainerLog.init();
+
+
+
+const inventorySystem = {
+  init: () => {
+    if (!state.inventory) state.inventory = {};
+    if (!state.usedItems) state.usedItems = {};
+  },
+
+  add: (item, amount = 1) => {
+    if (!state.inventory[item]) state.inventory[item] = 0;
+    state.inventory[item] += amount;
+    output.push(`📦 You obtained ${amount} × ${item}!`);
+  },
+
+  remove: (item, amount = 1) => {
+    if (!state.inventory[item] || state.inventory[item] < amount) {
+      output.push(`❌ You don't have enough ${item} to use.`);
+      return false;
+    }
+    state.inventory[item] -= amount;
+    if (state.inventory[item] === 0) delete state.inventory[item];
+    return true;
+  },
+
+  has: (item, amount = 1) => {
+    return (state.inventory[item] || 0) >= amount;
+  },
+
+  use: (item, onTarget = null) => {
+    if (!inventorySystem.has(item)) {
+      output.push(`You don't have any ${item}.`);
+      return;
+    }
+
+    if (item === "Potion") {
+      if (!state.battle || !state.battle.player) {
+        output.push("You can only use that in battle!");
+        return;
+      }
+
+      const healed = Math.min(20, state.battle.player.stats.hp - state.battle.player.hp);
+      state.battle.player.hp += healed;
+      output.push(`🧴 ${state.battle.player.name} regained ${healed} HP!`);
+    }
+
+    // Use and track
+    inventorySystem.remove(item);
+    inventorySystem.markUsed(item);
+  },
+
+  markUsed: (item) => {
+    state.usedItems[item] = true;
+  },
+
+  wasUsed: (item) => {
+    return state.usedItems[item] === true;
+  },
+
+  getInventoryList: () => {
+    const items = Object.entries(state.inventory)
+      .map(([item, count]) => `${item} × ${count}`);
+    if (items.length === 0) {
+      output.push("Your bag is empty.");
+    } else {
+      output.push("🎒 Inventory:\n" + items.join("\n"));
+    }
+  },
+
+  grantKeyItem: (item) => {
+    if (!state.keyItems) state.keyItems = new Set();
+    state.keyItems.add(item);
+    output.push(`🗝️ You received the key item: ${item}`);
+  },
+
+  hasKeyItem: (item) => {
+    return state.keyItems?.has(item);
+  },
+
+  listKeyItems: () => {
+    if (!state.keyItems || state.keyItems.size === 0) {
+      output.push("No key items yet.");
+    } else {
+      output.push("📘 Key Items:\n" + Array.from(state.keyItems).join("\n"));
+    }
+  },
+
+  clearAll: () => {
+    state.inventory = {};
+    state.keyItems = new Set();
+    state.usedItems = {};
+    output.push("🧹 Your inventory has been wiped clean (dev/debug).");
+  }
+};
+
+inventorySystem.init();
+globalThis.inventorySystem = inventorySystem;
+
+
+const dreamSystem = {
+  init: () => {
+    if (!state.dreamFlags) state.dreamFlags = {};
+    if (!state.lastDreamDay) state.lastDreamDay = 0;
+  },
+
+  canTriggerDream: () => {
+    const isNight = state.timeOfDay === "night";
+    const dayPassed = (state.time?.day || 0) > state.lastDreamDay;
+    const dreamEventActive = state.globalEvents["Dreamers' Curse"];
+    return isNight && dayPassed && dreamEventActive;
+  },
+
+  triggerDream: (dreamId) => {
+    const dream = dreamSystem.dreams[dreamId];
+    if (!dream) {
+      output.push(`❌ Unknown dream sequence: ${dreamId}`);
+      return;
+    }
+
+    state.lastDreamDay = state.time?.day || 0;
+    state.dreamFlags[dreamId] = true;
+
+    output.push("🌌 That night, a strange dream takes hold...");
+    if (dream.onEnter) dream.onEnter();
+  },
+
+  wasSeen: (dreamId) => {
+    return state.dreamFlags[dreamId] === true;
+  },
+
+  listSeenDreams: () => {
+    const seen = Object.keys(state.dreamFlags).filter(d => state.dreamFlags[d]);
+    if (seen.length === 0) {
+      output.push("You haven't experienced any dreams yet.");
+    } else {
+      output.push("💤 Dreams you've experienced:\n" + seen.join("\n"));
+    }
+  },
+
+  forceDream: (dreamId) => {
+    output.push("🌠 A strange force pulls you into a dream...");
+    dreamSystem.triggerDream(dreamId);
+  }
+};
+
+dreamSystem.dreams = {
+  "Echoes of Ruin": {
+    onEnter: () => {
+      output.push("You're walking through a desolate city. Buildings crumble in silence. A shadowy figure whispers: 'This world remembers... even when you don't.'");
+      world.setEventState("Ultra Anomalies", true);
+    }
+  },
+  "The White Garden": {
+    onEnter: () => {
+      output.push("You're standing in a glowing garden of crystal flowers. A gentle voice hums, 'The soul you carry once bloomed here.' Your Fairy-type Pokémon glow faintly.");
+      if (!state.dreamBlessings) state.dreamBlessings = new Set();
+      state.dreamBlessings.add("White Garden");
+    }
+  },
+  "Nightmare Swamp": {
+    onEnter: () => {
+      output.push("You’re waist-deep in black water. Red eyes blink in the dark. A voice calls: 'He waits for the one who ran…'");
+      world.increaseReputation("Crimson Order", -5);
+    }
+  }
+};
+
+dreamSystem.init();
+globalThis.dreamSystem = dreamSystem;
+
+
+sceneEngine.logScene = (sceneId) => {
+  if (!state.trainerLog) state.trainerLog = [];
+
+  const snapshot = {
+    scene: sceneId,
+    time: new Date().toLocaleString(),
+    region: state.region,
+    location: state.location,
+    bondSnapshot: { ...state.pokemonBond }
+  };
+
+state.trainerLog.push(snapshot);
+trainerLog.logAuto({ scene: sceneId, entry: `Entered ${state.location}` });
+};
+
+
+
+
+// --- worldClock definition (unchanged) ---
+const worldClock = {
+  // Initialization
+  init: () => {
+    if (!state.time) state.time = { hour: 8, day: 1, season: "Spring" }; // Start at 8:00 AM, Day 1
+    if (!state.weather) state.weather = "Clear";
+  },
+
+  // Advance time
+  passTime: (hours = 1) => {
+    state.time.hour += hours;
+
+    // Roll over days
+    while (state.time.hour >= 24) {
+      state.time.hour -= 24;
+      state.time.day++;
+      worldClock.rollWeather(); // New day, new weather
+      worldClock.rollSeason();  // Check season every day
+    }
+
+    worldClock.updateTimeOfDay();
+  },
+
+  // Set directly
+  setTime: (hour) => {
+    state.time.hour = hour % 24;
+    worldClock.updateTimeOfDay();
+  },
+
+  // Determine current time segment
+  updateTimeOfDay: () => {
+    const h = state.time.hour;
+    if (h >= 6 && h < 12) {
+      state.timeOfDay = "morning";
+    } else if (h >= 12 && h < 18) {
+      state.timeOfDay = "afternoon";
+    } else if (h >= 18 && h < 21) {
+      state.timeOfDay = "evening";
+    } else {
+      state.timeOfDay = "night";
+    }
+  },
+
+  // Generate random weather (optional)
+  rollWeather: () => {
+    const weatherTable = ["Clear", "Cloudy", "Rain", "Storm", "Fog"];
+    const roll = Math.random();
+    state.weather = roll < 0.5 ? "Clear"
+                 : roll < 0.7 ? "Cloudy"
+                 : roll < 0.85 ? "Rain"
+                 : roll < 0.95 ? "Storm"
+                 : "Fog";
+    output.push(`The weather has changed: ${state.weather}.`);
+  },
+
+  // Change seasons every 30 days
+  rollSeason: () => {
+    const seasons = ["Spring", "Summer", "Autumn", "Winter"];
+    const newSeason = seasons[Math.floor((state.time.day - 1) / 30) % 4];
+    if (state.time.season !== newSeason) {
+      state.time.season = newSeason;
+      output.push(`A new season begins: ${newSeason}.`);
+    }
+  },
+
+  // View current time state
+  getTimeSummary: () => {
+    const { hour, day, season } = state.time;
+    const meridiem = hour < 12 ? "AM" : "PM";
+    const displayHour = ((hour + 11) % 12 + 1);
+    return `🕒 Day ${day}, ${season}, ${displayHour}:00 ${meridiem} (${state.timeOfDay}) — Weather: ${state.weather}`;
+  }
+};
+
+const daycareSystem = {
+  init: () => {
+    if (!state.daycare) {
+      state.daycare = {
+        slot1: null, // {name, species, ...full pokemon data}
+        slot2: null,
+        steps: 0,   // increments for each time passage
+        eggReady: false,
+        egg: null
+      };
+    }
+  },
+
+  // Drop off a Pokémon
+  deposit: (name) => {
+    if (state.daycare.slot1 && state.daycare.slot2) {
+      output.push("Both Daycare slots are already filled.");
+      return;
+    }
+    // Remove from party (add your own removal logic here)
+    const pokeData = state.pokemonData[name];
+    if (!pokeData) {
+      output.push(`${name} not found.`);
+      return;
+    }
+    if (!state.daycare.slot1) {
+      state.daycare.slot1 = {...pokeData, name};
+      output.push(`${name} was left at the Daycare.`);
+    } else {
+      state.daycare.slot2 = {...pokeData, name};
+      output.push(`${name} was left at the Daycare.`);
+    }
+    trainerLog.logAuto({scene: "Daycare", entry: `${name} was deposited at the Daycare.`});
+  },
+
+  // Pick up a Pokémon
+  withdraw: (slot = 1) => {
+    const slotKey = slot === 2 ? "slot2" : "slot1";
+    if (!state.daycare[slotKey]) {
+      output.push("No Pokémon in that slot.");
+      return;
+    }
+    const poke = state.daycare[slotKey];
+    // Add back to party (add your own party add logic)
+    state.pokemonData[poke.name] = {...poke}; // ensure re-added to data
+    state.daycare[slotKey] = null;
+    output.push(`${poke.name} was picked up from the Daycare.`);
+    trainerLog.logAuto({scene: "Daycare", entry: `${poke.name} was withdrawn from the Daycare.`});
+  },
+
+  // Time passage (call this with worldClock.passTime, e.g. for every X steps/hours)
+  tick: (steps = 1) => {
+    if (!state.daycare.slot1 && !state.daycare.slot2) return; // nothing in daycare
+    state.daycare.steps += steps;
+
+    // Level up Pokémon (every 100 steps = 1 level, example)
+    for (const slotKey of ["slot1", "slot2"]) {
+      const poke = state.daycare[slotKey];
+      if (poke) {
+        const beforeLevel = poke.level || 1;
+        const levelGained = Math.floor(state.daycare.steps / 100) - (poke.daycareLevelGain || 0);
+        if (levelGained > 0) {
+          poke.level = beforeLevel + levelGained;
+          poke.daycareLevelGain = (poke.daycareLevelGain || 0) + levelGained;
+          output.push(`${poke.name} grew to level ${poke.level} at the Daycare!`);
+          trainerLog.logAuto({scene: "Daycare", entry: `${poke.name} reached level ${poke.level} at the Daycare.`});
+          // Optionally: teach new moves on level up!
+        }
+      }
+    }
+
+    // Breeding check
+    daycareSystem.checkForEgg();
+  },
+
+  // Breeding logic
+  checkForEgg: () => {
+    if (!state.daycare.slot1 || !state.daycare.slot2 || state.daycare.eggReady) return;
+    const p1 = state.daycare.slot1;
+    const p2 = state.daycare.slot2;
+
+    // Simple: must be opposite gender, compatible species, not Ditto (expand this!)
+    const canBreed = areBreedingCompatible(p1, p2);
+    const gendersOk =
+      ((p1.gender === "Male" && p2.gender === "Female") || (p1.gender === "Female" && p2.gender === "Male"))
+      || [p1.species, p2.species].includes("Ditto");
+
+    // Can only make one egg per session, one check per tick
+    if (canBreed && gendersOk && state.daycare.steps % 50 === 0 && Math.random() < 0.25) { // 25% chance per check
+      // Egg data (use mother’s species unless breeding with Ditto)
+      const babySpecies = (p1.gender === "Female" && p1.species !== "Ditto") ? p1.species : p2.species;
+      state.daycare.eggReady = true;
+      state.daycare.egg = {
+        species: babySpecies,
+        inheritedMoves: getEggMoves(p1, p2), // you can expand this!
+        nature: Math.random() < 0.5 ? p1.nature : p2.nature,
+        personality: Math.random() < 0.5 ? p1.personality : p2.personality
+      };
+      output.push(`🥚 The Daycare has discovered an Egg!`);
+      trainerLog.logAuto({scene: "Daycare", entry: `An egg was produced by ${p1.name} and ${p2.name}.`});
+    }
+  },
+
+  // Pick up Egg
+  collectEgg: () => {
+    if (!state.daycare.eggReady || !state.daycare.egg) {
+      output.push("No egg is ready yet.");
+      return;
+    }
+    // Add to player inventory or party (your logic)
+    inventorySystem.add(`Egg (${state.daycare.egg.species})`);
+    output.push(`You received an egg containing a ${state.daycare.egg.species}!`);
+    trainerLog.logAuto({scene: "Daycare", entry: `Collected an egg: ${state.daycare.egg.species}.`});
+    state.daycare.eggReady = false;
+    state.daycare.egg = null;
+  },
+
+  // Show current Daycare status
+  showStatus: () => {
+    let out = "🏠 Daycare Status:\n";
+    out += state.daycare.slot1 ? `• Slot 1: ${state.daycare.slot1.name} (${state.daycare.slot1.species}, Lv.${state.daycare.slot1.level})\n` : "• Slot 1: Empty\n";
+    out += state.daycare.slot2 ? `• Slot 2: ${state.daycare.slot2.name} (${state.daycare.slot2.species}, Lv.${state.daycare.slot2.level})\n` : "• Slot 2: Empty\n";
+    out += state.daycare.eggReady ? `🥚 Egg ready: ${state.daycare.egg.species}` : "";
+    output.push(out.trim());
+  }
+};
+
+// --- Simple Egg Group Data ---
+// Add more as needed
+const eggGroups = {
+  "Field": ["Bulbasaur", "Charmander", "Squirtle", "Eevee", "Growlithe", "Pikachu", /* ... */],
+  "Water 1": ["Squirtle", "Psyduck", "Poliwag", /* ... */],
+  "Monster": ["Charmander", "Cubone", /* ... */],
+  "Human-Like": ["Machop", "Abra", /* ... */],
+  "Ditto": ["Ditto"],
+  "Undiscovered": [/* Legendaries, etc. */],
+  // Expand with more groups!
+};
+
+// --- Fast Egg Group Map for lookup ---
+const getEggGroups = (species) => {
+  let groups = [];
+  for (const [group, mons] of Object.entries(eggGroups)) {
+    if (mons.includes(species)) groups.push(group);
+  }
+  return groups;
+};
+
+function areBreedingCompatible(p1, p2) {
+  // Handle Ditto special case
+  if (p1.species === "Ditto" || p2.species === "Ditto") {
+    // Ditto can't breed with Ditto or legendaries/undiscovered
+    const nonDitto = p1.species === "Ditto" ? p2 : p1;
+    const nonDittoGroups = getEggGroups(nonDitto.species);
+    if (nonDittoGroups.includes("Undiscovered")) return false;
+    if (nonDitto.species === "Ditto") return false; // both Ditto
+    return true;
+  }
+
+  // Must not be genderless or legendary
+  if (
+    p1.gender === "Genderless" || p2.gender === "Genderless" ||
+    getEggGroups(p1.species).includes("Undiscovered") ||
+    getEggGroups(p2.species).includes("Undiscovered")
+  ) return false;
+
+  // Must share at least one Egg Group
+  const g1 = getEggGroups(p1.species);
+  const g2 = getEggGroups(p2.species);
+  const overlap = g1.some(g => g2.includes(g));
+  if (!overlap) return false;
+
+  // Must not both be male or both be female
+  if (p1.gender === p2.gender) return false;
+
+  return true;
+}
+
+// --- Example Egg Moves Data ---
+const eggMoves = {
+  // Kanto
+  "Bulbasaur": ["Amnesia", "Charm", "Endure", "Giga Drain", "Grassy Terrain", "Ingrain", "Leaf Storm", "Nature Power", "Power Whip", "Skull Bash", "Sludge"],
+  "Charmander": ["Ancient Power", "Belly Drum", "Bite", "Counter", "Crunch", "Dragon Dance", "Dragon Pulse", "Dragon Rush", "Flare Blitz", "Metal Claw", "Outrage"],
+  "Squirtle": ["Aqua Jet", "Aqua Ring", "Aura Sphere", "Dragon Pulse", "Fake Out", "Flail", "Haze", "Mirror Coat", "Mist", "Water Spout", "Yawn"],
+  "Pidgey": ["Air Cutter", "Brave Bird", "Feint Attack", "Foresight", "Pursuit", "Steel Wing", "Uproar"],
+  "Rattata": ["Bite", "Counter", "Final Gambit", "Flame Wheel", "Fury Swipes", "Last Resort", "Me First", "Reversal", "Revenge", "Screech", "Uproar"],
+  "Eevee": ["Wish", "Yawn", "Curse", "Flail", "Detect", "Fake Tears", "Tickle", "Charm", "Covet", "Endure", "Stored Power"],
+  "Pikachu": ["Bestow", "Bide", "Charge", "Disarming Voice", "Double Slap", "Encore", "Fake Out", "Flail", "Lightning Rod", "Lucky Chant", "Present", "Reversal", "Thunder Punch", "Tickle", "Wish"],
+  "Growlithe": ["Body Slam", "Burn Up", "Close Combat", "Covet", "Crush Claw", "Double-Edge", "Double Kick", "Flare Blitz", "Head Smash", "Howl", "Iron Tail", "Morning Sun", "Thrash"],
+  // Johto
+  "Chikorita": ["Ancient Power", "Aromatherapy", "Body Slam", "Counter", "Flail", "Grass Whistle", "Grassy Terrain", "Ingrain", "Leaf Storm", "Leech Seed", "Nature Power", "Refresh", "Vine Whip"],
+  "Cyndaquil": ["Covet", "Crush Claw", "Double Kick", "Double-Edge", "Extrasensory", "Flare Blitz", "Foresight", "Nature Power", "Quick Attack", "Reversal", "Thrash"],
+  "Totodile": ["Aqua Jet", "Block", "Crunch", "Dragon Dance", "Fake Tears", "Flatter", "Ice Fang", "Metal Claw", "Mud Sport", "Water Sport"],
+  "Pichu": ["Wish", "Volt Tackle", "Fake Out", "Present", "Bestow", "Bide", "Charge", "Disarming Voice", "Double Slap", "Encore", "Flail", "Lucky Chant", "Reversal", "Thunder Punch", "Tickle"],
+  // Hoenn
+  "Treecko": ["Bullet Seed", "Crunch", "Crush Claw", "Dragon Breath", "Endeavor", "Grass Whistle", "Grassy Terrain", "Leech Seed", "Razor Wind", "Synthesis", "Worry Seed"],
+  "Torchic": ["Agility", "Baton Pass", "Counter", "Crush Claw", "Curse", "Endure", "Feather Dance", "Last Resort", "Night Slash", "Reversal", "Smelling Salts"],
+  "Mudkip": ["Ancient Power", "Avalanche", "Barrier", "Bite", "Counter", "Curse", "Double-Edge", "Mirror Coat", "Mud Bomb", "Refresh", "Sludge", "Stomp", "Uproar", "Whirlpool", "Wide Guard", "Yawn"],
+  // Sinnoh
+  "Turtwig": ["Amnesia", "Body Slam", "Double-Edge", "Growth", "Sand Tomb", "Seed Bomb", "Superpower", "Tickle", "Worry Seed"],
+  "Chimchar": ["Assist", "Blaze Kick", "Counter", "Double Kick", "Encore", "Fake Out", "Fake Tears", "Fire Punch", "Focus Punch", "Heat Wave", "Helping Hand", "Power-Up Punch", "Quick Guard", "Thunder Punch"],
+  "Piplup": ["Agility", "Aqua Ring", "Brine", "Feather Dance", "Flail", "Hydro Pump", "Icy Wind", "Mud-Slap", "Snore", "Supersonic", "Yawn"],
+  // Unova
+  "Snivy": ["Captivate", "Glare", "Grassy Terrain", "Iron Tail", "Mean Look", "Mirror Coat", "Pursuit", "Sweet Scent", "Twister"],
+  "Tepig": ["Body Slam", "Covet", "Curse", "Endure", "Heavy Slam", "Magnitude", "Sucker Punch", "Superpower", "Thrash"],
+  "Oshawott": ["Air Slash", "Assurance", "Brine", "Copycat", "Detect", "Night Slash", "Sacred Sword", "Trump Card"],
+  // Kalos
+  "Chespin": ["Belly Drum", "Curse", "Defense Curl", "Power-Up Punch", "Quick Guard", "Spikes", "Synthesis"],
+  "Fennekin": ["Heat Wave", "Hypnosis", "Magic Coat", "Wish"],
+  "Froakie": ["Bestow", "Mind Reader", "Mud Sport", "Power-Up Punch", "Toxic Spikes", "Water Sport"],
+  // Alola
+  "Rowlet": ["Baton Pass", "Confuse Ray", "Curse", "Haze", "Ominous Wind"],
+  "Litten": ["Body Slam", "Crunch", "Fake Out", "Power Trip", "Revenge"],
+  "Popplio": ["Aqua Ring", "Aqua Jet", "Perish Song", "Wonder Room"],
+  // Galar
+  "Grookey": ["Grassy Glide", "Growth", "Hammer Arm", "Leech Seed", "Nature Power", "Power-Up Punch"],
+  "Scorbunny": ["Ally Switch", "High Jump Kick", "Sand Attack", "Soccer Ball", "Super Fang"],
+  "Sobble": ["Aqua Ring", "Aqua Jet", "Haze", "Ice Shard", "Mist", "Water Pulse"],
+  // Paldea
+  "Sprigatito": ["Copycat", "Fake Out", "Grass Whistle", "Leaf Storm", "Play Rough", "Sucker Punch", "Worry Seed"],
+  "Fuecoco": ["Belch", "Fire Fang", "Spit Up", "Stockpile", "Swallow", "Yawn"],
+  "Quaxly": ["Aqua Jet", "Feather Dance", "Haze", "Liquidation", "Misty Terrain"],
+
+  // A few classic baby Pokémon (Gen 1-4)
+  "Magby": ["Barrier", "Belly Drum", "Cross Chop", "Dynamic Punch", "Flare Blitz", "Mach Punch", "Mega Punch", "Power Swap", "Screech", "Thunder Punch"],
+  "Elekid": ["Barrier", "Cross Chop", "Dynamic Punch", "Fire Punch", "Focus Punch", "Hammer Arm", "Ice Punch", "Karate Chop", "Mega Kick", "Mega Punch", "Rolling Kick"],
+  "Smoochum": ["Fake Out", "Miracle Eye", "Nasty Plot", "Wish"],
+  "Togepi": ["Extrasensory", "Foresight", "Future Sight", "Lucky Chant", "Mirror Move", "Morning Sun", "Nasty Plot", "Peck", "Psycho Shift", "Stored Power"],
+
+  // You can copy this structure and keep adding as needed!
+};
+
+
+function getEggMoves(parent1, parent2) {
+  // Find baby species (female, unless breeding with Ditto)
+  const babySpecies = (parent1.gender === "Female" && parent1.species !== "Ditto") ? parent1.species : parent2.species;
+  const babyEggMoves = eggMoves[babySpecies] || [];
+  let inherited = [];
+  let maleParent, femaleParent;
+  
+  // Figure out which is the "male" (for inheritance)
+  if (parent1.gender === "Male" || parent2.species === "Ditto") {
+    maleParent = parent1;
+    femaleParent = parent2;
+  } else {
+    maleParent = parent2;
+    femaleParent = parent1;
+  }
+
+  // 1. Inherit moves both parents know that are on the egg move list
+  for (let move of babyEggMoves) {
+    if (
+      (maleParent.moves && maleParent.moves.includes(move)) &&
+      (femaleParent.moves && femaleParent.moves.includes(move))
+    ) {
+      inherited.push(move);
+    }
+  }
+
+  // 2. Add additional egg moves that the **male parent** knows
+  for (let move of maleParent.moves || []) {
+    if (babyEggMoves.includes(move) && !inherited.includes(move)) {
+      inherited.push(move);
+    }
+  }
+
+  // 3. If Ditto, use the non-Ditto parent's moves
+  if (maleParent.species === "Ditto" || femaleParent.species === "Ditto") {
+    const nonDitto = maleParent.species === "Ditto" ? femaleParent : maleParent;
+    for (let move of nonDitto.moves || []) {
+      if (babyEggMoves.includes(move) && !inherited.includes(move)) {
+        inherited.push(move);
+      }
+    }
+  }
+
+  // 4. Limit to 4 moves max
+  return inherited.slice(0, 4);
+}
+
+// When creating an egg, add a steps and stepsRequired
+const eggHatchHours = {
+  // Gen 1 (Kanto)
+  "Bulbasaur": 15,  "Charmander": 20,  "Squirtle": 20,
+  "Caterpie": 3,    "Weedle": 3,       "Pidgey": 4,
+  "Rattata": 4,     "Spearow": 4,      "Ekans": 15,
+  "Sandshrew": 15,  "Nidoran♀": 5,     "Nidoran♂": 5,
+  "Vulpix": 20,     "Jigglypuff": 10,  "Zubat": 10,
+  "Oddish": 10,     "Paras": 10,       "Venonat": 10,
+  "Diglett": 10,    "Meowth": 10,      "Psyduck": 15,
+  "Mankey": 15,     "Growlithe": 20,   "Poliwag": 5,
+  "Abra": 20,       "Machop": 20,      "Bellsprout": 10,
+  "Tentacool": 20,  "Geodude": 15,     "Ponyta": 20,
+  "Slowpoke": 20,   "Magnemite": 20,   "Farfetch'd": 20,
+  "Doduo": 15,      "Seel": 20,        "Grimer": 20,
+  "Shellder": 20,   "Gastly": 20,      "Onix": 25,
+  "Drowzee": 20,    "Krabby": 15,      "Exeggcute": 20,
+  "Cubone": 20,     "Lickitung": 20,   "Koffing": 20,
+  "Rhyhorn": 20,    "Tangela": 20,     "Horsea": 20,
+  "Goldeen": 20,    "Staryu": 20,      "Mr. Mime": 20,
+  "Scyther": 20,    "Jynx": 20,        "Electabuzz": 25,
+  "Magmar": 25,     "Pinsir": 20,      "Tauros": 20,
+  "Magikarp": 5,    "Lapras": 40,      "Ditto": 20,
+  "Eevee": 30,      "Porygon": 20,     "Snorlax": 40,
+
+  // Gen 2 (Johto)
+  "Chikorita": 20, "Cyndaquil": 20, "Totodile": 20,
+  "Sentret": 4, "Hoothoot": 5, "Ledyba": 5, "Spinarak": 5,
+  "Chinchou": 20, "Pichu": 8, "Cleffa": 10, "Igglybuff": 10,
+  "Togepi": 10, "Natu": 10, "Mareep": 5, "Marill": 10,
+  "Sudowoodo": 20, "Hoppip": 10, "Aipom": 20, "Sunkern": 10,
+  "Yanma": 20, "Wooper": 10, "Murkrow": 20, "Misdreavus": 20,
+  "Wynaut": 20, "Girafarig": 20, "Pineco": 20, "Dunsparce": 20,
+  "Gligar": 20, "Snubbull": 20, "Qwilfish": 20, "Shuckle": 20,
+  "Heracross": 20, "Sneasel": 20, "Teddiursa": 20, "Slugma": 20,
+  "Swinub": 20, "Corsola": 20, "Remoraid": 20, "Delibird": 20,
+  "Mantine": 20, "Skarmory": 20, "Houndour": 20, "Phanpy": 20,
+  "Stantler": 20, "Smeargle": 20, "Tyrogue": 20, "Smoochum": 20,
+  "Elekid": 25, "Magby": 25, "Miltank": 20, "Larvitar": 40,
+
+  // Gen 3 (Hoenn)
+  "Treecko": 20, "Torchic": 20, "Mudkip": 20, "Poochyena": 5,
+  "Zigzagoon": 5, "Wurmple": 5, "Lotad": 5, "Seedot": 5,
+  "Taillow": 5, "Wingull": 5, "Ralts": 20, "Surskit": 5,
+  "Shroomish": 10, "Slakoth": 20, "Nincada": 20, "Whismur": 10,
+  "Makuhita": 20, "Azurill": 10, "Skitty": 15, "Sableye": 20,
+  "Mawile": 20, "Aron": 35, "Meditite": 20, "Electrike": 20,
+  "Plusle": 20, "Minun": 20, "Volbeat": 20, "Illumise": 20,
+  "Roselia": 20, "Gulpin": 20, "Carvanha": 20, "Wailmer": 20,
+  "Numel": 20, "Torkoal": 20, "Spoink": 20, "Spinda": 20,
+  "Trapinch": 20, "Cacnea": 20, "Swablu": 20, "Zangoose": 20,
+  "Seviper": 20, "Lunatone": 20, "Solrock": 20, "Barboach": 20,
+  "Corphish": 20, "Baltoy": 20, "Lileep": 20, "Anorith": 20,
+  "Feebas": 20, "Castform": 20, "Kecleon": 20, "Shuppet": 20,
+  "Duskull": 20, "Tropius": 20, "Chimecho": 20, "Absol": 20,
+  "Wynaut": 20, "Snorunt": 20, "Spheal": 20, "Clamperl": 20,
+  "Relicanth": 20, "Luvdisc": 20, "Bagon": 40, "Beldum": 40,
+
+  // Gen 4 (Sinnoh)
+  "Turtwig": 20, "Chimchar": 20, "Piplup": 20, "Starly": 5, "Bidoof": 5, "Kricketot": 5,
+  "Shinx": 20, "Budew": 20, "Cranidos": 40, "Shieldon": 40, "Burmy": 15, "Combee": 15,
+  "Pachirisu": 10, "Buizel": 10, "Cherubi": 10, "Shellos": 10, "Drifloon": 20,
+  "Buneary": 20, "Glameow": 20, "Chingling": 20, "Stunky": 20, "Bronzor": 20,
+  "Bonsly": 20, "Mime Jr.": 20, "Happiny": 20, "Chatot": 20, "Spiritomb": 20,
+  "Gible": 40, "Riolu": 20, "Hippopotas": 20, "Skorupi": 20, "Croagunk": 20,
+  "Carnivine": 20, "Finneon": 20, "Mantyke": 20, "Snover": 20, "Rotom": 20,
+  "Snivy": 20, "Tepig": 20, "Oshawott": 20,
+
+  // Gen 5 (Unova)
+  "Snivy": 20, "Tepig": 20, "Oshawott": 20, "Patrat": 5, "Lillipup": 5, "Purrloin": 5,
+  "Pansage": 20, "Pansear": 20, "Panpour": 20, "Munna": 20, "Pidove": 5, "Blitzle": 20,
+  "Roggenrola": 20, "Woobat": 20, "Drilbur": 20, "Audino": 20, "Timburr": 20,
+  "Tympole": 20, "Throh": 20, "Sawk": 20, "Sewaddle": 20, "Venipede": 20,
+  "Cottonee": 20, "Petilil": 20, "Sandile": 20, "Darumaka": 20, "Dwebble": 20,
+  "Scraggy": 20, "Sigilyph": 20, "Yamask": 20, "Tirtouga": 40, "Archen": 40,
+  "Trubbish": 20, "Zorua": 20, "Minccino": 20, "Gothita": 20, "Solosis": 20,
+  "Ducklett": 20, "Vanillite": 20, "Deerling": 20, "Emolga": 20, "Karrablast": 20,
+  "Foongus": 20, "Frillish": 20, "Alomomola": 20, "Joltik": 20, "Ferroseed": 20,
+  "Klink": 20, "Tynamo": 20, "Elgyem": 20, "Litwick": 20, "Axew": 40,
+  "Cubchoo": 20, "Cryogonal": 20, "Shelmet": 20, "Stunfisk": 20, "Mienfoo": 20,
+  "Druddigon": 20, "Golett": 20, "Pawniard": 20, "Bouffalant": 20, "Rufflet": 20,
+  "Vullaby": 20, "Heatmor": 20, "Durant": 20, "Deino": 40, "Larvesta": 40,
+
+  // Gen 6 (Kalos)
+  "Chespin": 20, "Fennekin": 20, "Froakie": 20, "Bunnelby": 5, "Fletchling": 5,
+  "Scatterbug": 5, "Litleo": 20, "Flabébé": 20, "Skiddo": 20, "Pancham": 20,
+  "Furfrou": 20, "Espurr": 20, "Honedge": 20, "Spritzee": 20, "Swirlix": 20,
+  "Inkay": 20, "Binacle": 20, "Skrelp": 20, "Clauncher": 20, "Helioptile": 20,
+  "Tyrunt": 40, "Amaura": 40, "Hawlucha": 20, "Dedenne": 20, "Carbink": 20,
+  "Goomy": 40, "Klefki": 20, "Phantump": 20, "Pumpkaboo": 20, "Bergmite": 20,
+  "Noibat": 20,
+
+  // Gen 7 (Alola)
+  "Rowlet": 20, "Litten": 20, "Popplio": 20, "Pikipek": 5, "Yungoos": 5,
+  "Grubbin": 5, "Crabrawler": 20, "Oricorio": 20, "Cutiefly": 20, "Rockruff": 20,
+  "Wishiwashi": 20, "Mareanie": 20, "Mudbray": 20, "Dewpider": 20, "Fomantis": 20,
+  "Morelull": 20, "Salandit": 20, "Stufful": 20, "Bounsweet": 20, "Comfey": 20,
+  "Oranguru": 20, "Passimian": 20, "Wimpod": 20, "Sandygast": 20, "Pyukumuku": 20,
+  "Type: Null": 40, "Jangmo-o": 40, "Cosmog": 40,
+
+  // Gen 8 (Galar)
+  "Grookey": 20, "Scorbunny": 20, "Sobble": 20, "Skwovet": 5, "Rookidee": 5,
+  "Blipbug": 5, "Nickit": 5, "Gossifleur": 20, "Wooloo": 20, "Chewtle": 20,
+  "Yamper": 20, "Rolycoly": 20, "Applin": 20, "Silicobra": 20, "Arrokuda": 20,
+  "Toxel": 20, "Sizzlipede": 20, "Clobbopus": 20, "Cufant": 20, "Dracozolt": 40,
+  "Arctozolt": 40, "Dracovish": 40, "Arctovish": 40, "Duraludon": 20, "Dreepy": 40,
+
+  // Gen 9 (Paldea)
+  "Sprigatito": 20, "Fuecoco": 20, "Quaxly": 20, "Lechonk": 5, "Tarantula": 5,
+  "Nymble": 5, "Pawmi": 20, "Tandemaus": 20, "Fidough": 20, "Smoliv": 20,
+  "Squawkabilly": 20, "Nacli": 20, "Charcadet": 20, "Tadbulb": 20, "Wattrel": 20,
+  "Maschiff": 20, "Shroodle": 20, "Capsakid": 20, "Tadbulb": 20, "Wiglett": 20,
+  "Bombirdier": 20, "Finizen": 20, "Varoom": 20, "Tinkatink": 20, "Wiglett": 20,
+  "Toedscool": 20, "Klawf": 20, "Rellor": 20, "Flittle": 20, "Tadbulb": 20,
+  "Orthworm": 20, "Glimmet": 20, "Greavard": 20, "Flamigo": 20, "Cetoddle": 20,
+  "Veluza": 20, "Dondozo": 20, "Tatsugiri": 20, "Annihilape": 20, "Clodsire": 20,
+  // ...etc.
+};
+
+
+function createEgg(species, inheritedMoves, nature, personality) {
+  return {
+    species,
+    inheritedMoves,
+    nature,
+    personality,
+    timeWithTrainer: 0, // hours spent in player's party
+    hoursRequired: eggHatchHours[species] || 15 // fallback to 15 hours if not set
+  };
+}
+
+const egg = createEgg(/*species, moves, nature, personality*/);
+// Add to party, PC, or state.eggs
+state.eggs = state.eggs || [];
+state.eggs.push(egg);
+output.push(`You received an egg containing a ${egg.species}!`);
+
+function tickEggs(hours = 1) {
+  if (!state.eggs) return;
+  for (let egg of state.eggs) {
+    if (egg.location === 'party') { // Only eggs in party gain progress!
+      egg.timeWithTrainer += hours;
+      // Optional: notify when almost ready
+      if (
+        !egg.almostReady &&
+        egg.hoursRequired - egg.timeWithTrainer <= 2 &&
+        egg.timeWithTrainer < egg.hoursRequired
+      ) {
+        egg.almostReady = true;
+        output.push(`Your ${egg.species} egg trembles! It may hatch soon!`);
+      }
+    }
+  }
+}
+
+
+function hatchEgg(index = 0) {
+  if (!state.eggs || !state.eggs[index]) {
+    output.push("No egg found in that slot.");
+    return;
+  }
+  const egg = state.eggs[index];
+  if (egg.timeWithTrainer < egg.hoursRequired) {
+    output.push(`This egg isn't ready to hatch yet.`);
+    return;
+  }
+  // Generate Pokémon from egg
+  const name = generateRandomPokemonName(egg.species);
+  state.pokemonData[name] = {
+    species: egg.species,
+    level: 1,
+    moves: egg.inheritedMoves.slice(),
+    nature: egg.nature,
+    personality: egg.personality,
+    bond: 0 // start at 0
+  };
+  output.push(`✨ Your egg hatched into a ${egg.species}! Welcome, ${name}!`);
+  // Remove egg from state
+  state.eggs.splice(index, 1);
+}
+
+function showEggs() {
+  if (!state.eggs || state.eggs.length === 0) {
+    output.push("You have no eggs.");
+    return;
+  }
+  let out = "🥚 Your Eggs:\n";
+  state.eggs.forEach((egg, i) => {
+    const percent = Math.floor((egg.timeWithTrainer / egg.hoursRequired) * 100);
+    out += `• Slot ${i+1}: ${egg.species} Egg (${percent}% ready)\n`;
+  });
+  output.push(out.trim());
+}
+
+// You’d also need to wire this to your worldClock.passTime (call daycareSystem.tick after each time passage)
+daycareSystem.init();
+globalThis.daycareSystem = daycareSystem;
+
+
+// --- Global exports: safe anywhere ---
+globalThis.worldClock = worldClock;
+globalThis.sceneEngine = sceneEngine;
+globalThis.world = world;
+
+// --- SAFETY: Always init your flags before using ---
+if (!state.flags) state.flags = {};
+
+// --- SAFETY: Always init worldClock before using any time values! ---
+worldClock.init();
+
+// --- Now it's SAFE to access state.time ---
+state.lastDayCheck = state.lastDayCheck || 0;
+if (state.time.day > state.lastDayCheck) {
+  state.lastDayCheck = state.time.day;
+  // e.g., reset shops, refresh encounter flags, etc.
+}
+
+// --- Monkey-patch passTime to include daycare tick ---
+const originalPassTime = worldClock.passTime;
+worldClock.passTime = (hours = 1) => {
+  originalPassTime(hours);
+  tickEggs(hours); // Progress eggs with player by hours, not steps
+  if (typeof daycareSystem?.tick === "function") daycareSystem.tick(hours);
+  if (typeof eventSystem?.checkEvents === "function") eventSystem.checkEvents();
+};
+
+// --- Monkey-patch sceneEngine.transition to include event checks ---
+const originalSceneTransition = sceneEngine.transition;
+sceneEngine.transition = (sceneId, options = {}) => {
+  eventSystem.checkEvents();
+  output.push("...");
+  sceneEngine.logScene(sceneId);
+  originalSceneTransition(sceneId, options);
+};
+
+ // --- Expanded Good Actions (bond-building + nurture flags) ---
+const goodActions = [
+  { phrase: /feed(s|ed)?(.*)?(pok[eé]mon|them)/i, value: 2 },
+  { phrase: /gives? (treats|snacks|berries) to/i, value: 2 },
+  { phrase: /pets? .*pok[eé]mon/i, value: 2 },
+  { phrase: /hug(s|ged)? .*pok[eé]mon/i, value: 3 },
+  { phrase: /praise(s|d)? .*pok[eé]mon/i, value: 3 },
+  { phrase: /said "good (job|work|boy|girl)"/i, value: 2 },
+  { phrase: /protect(s|ed)? (.*)?from harm/i, value: 3 },
+  { phrase: /let(s|ting)? (.*)?out of (ball|pok[eé]ball)/i, value: 2, flag: "oftenLetOut" },
+  { phrase: /let(s|ting)? .*stay out of pok[eé]ball/i, value: 2, flag: "oftenLetOut" },
+  { phrase: /allow(s|ed)? .* to rest/i, value: 1 },
+  { phrase: /heal(s|ed)? (them|.*pok[eé]mon)/i, value: 2 },
+  { phrase: /listens? to .*feelings/i, value: 2, flag: "allowedChoice" },
+  { phrase: /trusts? .*decisions/i, value: 2, flag: "allowedChoice" },
+  { phrase: /ask(s|ed)? .*what (they|it) want(s)?/i, value: 2, flag: "allowedChoice" },
+  { phrase: /plays? with .*pok[eé]mon/i, value: 2 },
+  { phrase: /comfort(s|ed)? (them|.*)/i, value: 2 },
+  { phrase: /let(s)? .*pick their move/i, value: 3, flag: "allowedChoice" },
+  { phrase: /say(s|said)? "thank you"/i, value: 1 },
+  { phrase: /groom(s|ed)? .*pok[eé]mon/i, value: 2 },
+  { phrase: /gave .*free time/i, value: 2, flag: "allowedChoice" },
+  { phrase: /played music for .*pok[eé]mon/i, value: 1 },
+  { phrase: /cuddles? with .*pok[eé]mon/i, value: 2 },
+  { phrase: /brought .*(blanket|toy|comfort item)/i, value: 2 },
+  { phrase: /planned a special (day|outing|picnic) for/i, value: 2, flag: "allowedChoice" },
+  { phrase: /thanked .*for their effort/i, value: 2 },
+  { phrase: /kept .*safe from danger/i, value: 2 },
+  { phrase: /allowed .*to make friends/i, value: 1, flag: "allowedChoice" },
+  { phrase: /let(s|ting)? .*explore/i, value: 1, flag: "allowedChoice" },
+  { phrase: /gave .*a choice/i, value: 2, flag: "allowedChoice" },
+  { phrase: /(refused|avoided) forcing .*to battle/i, value: 2, flag: "notForcedToBattle", flagValue: true },
+];
+
+// --- Expanded Neutral Actions (ambiguous/gray) ---
+const neutralActions = [
+  { phrase: /use(s|d)? bitter (herbs|medicine)/i, value: -1 },
+  { phrase: /give(s|gave)? a (sour|bitter|dry) berry/i, value: -1 },
+  { phrase: /ignored .*injury after battle/i, value: -2 },
+  { phrase: /forgot to (feed|heal)/i, value: -2 },
+  { phrase: /did(n't)? check on .*after battle/i, value: -2 },
+  { phrase: /sent (them|.*pok[eé]mon) into too many battles/i, value: -1, flag: "notForcedToBattle", flagValue: false },
+  { phrase: /scold(s|ed)? lightly/i, value: -1 },
+  { phrase: /"you'll be fine"/i, value: -1 },
+  { phrase: /"deal with it"/i, value: -1 },
+  { phrase: /used move they dislike/i, value: -1 },
+  { phrase: /left .*alone for a while/i, value: -1 },
+  { phrase: /was busy and couldn't play with/i, value: -1 },
+  { phrase: /apologized for forgetting/i, value: 0 },
+];
+
+// --- Expanded Bad Actions (break trust or force) ---
+const badActions = [
+  { phrase: /yell(s|ed)? at .*pok[eé]mon/i, value: -4 },
+  { phrase: /call(s|ed)? .*(stupid|worthless|weak|useless)/i, value: -5 },
+  { phrase: /said .*"you failed me"/i, value: -5 },
+  { phrase: /push(es|ed)? .*away/i, value: -4 },
+  { phrase: /leave(s|left)? them behind/i, value: -6 },
+  { phrase: /"you're just a tool"/i, value: -7 },
+  { phrase: /abuse(s|d)? .*pok[eé]mon/i, value: -10 },
+  { phrase: /refuse(s|d)? to (heal|feed)/i, value: -4 },
+  { phrase: /intentionally send(s|ing)? .*into danger/i, value: -5, flag: "notForcedToBattle", flagValue: false },
+  { phrase: /train(s|ed)? them past exhaustion/i, value: -4, flag: "notForcedToBattle", flagValue: false },
+  { phrase: /hurt(s|ing)? .*just to prove a point/i, value: -6 },
+  { phrase: /said .*"you're lucky I keep you around"/i, value: -4 },
+  { phrase: /makes? .*fight when exhausted/i, value: -5, flag: "notForcedToBattle", flagValue: false },
+  { phrase: /punish(es|ed)? .*for losing/i, value: -5 },
+  { phrase: /forced .*to battle/i, value: -3, flag: "notForcedToBattle", flagValue: false },
+  { phrase: /ignored .*cries for help/i, value: -4 },
+  { phrase: /mocked .*for being afraid/i, value: -3 },
+  { phrase: /destroyed .*favorite item/i, value: -3 },
+  { phrase: /locked .*in pok[eé]ball/i, value: -2, flag: "oftenLetOut", flagValue: false },
+  { phrase: /threaten(ed|s)? .*with release/i, value: -4 },
+  { phrase: /sold .*for money/i, value: -10 },
+];
+
+
+const personalityTraits = {
+  "Timid": {
+    likes: ["gentle", "supportive", "protective"],
+    dislikes: ["yelling", "pressure", "abandonment"],
+    modifiers: { good: 1.2, neutral: 1.0, bad: 1.5 }
+  },
+  "Bold": {
+    likes: ["challenge", "respect", "freedom"],
+    dislikes: ["coddling", "doubt", "commands without trust"],
+    modifiers: { good: 1.0, neutral: 0.8, bad: 0.8 }
+  },
+  "Lonely": {
+    likes: ["attention", "companionship", "personal praise"],
+    dislikes: ["neglect", "dismissiveness", "group praise"],
+    modifiers: { good: 1.3, neutral: 1.0, bad: 1.3 }
+  },
+  "Jolly": {
+    likes: ["play", "jokes", "affection"],
+    dislikes: ["silence", "anger", "isolation"],
+    modifiers: { good: 1.1, neutral: 1.0, bad: 1.4 }
+  },
+  "Calm": {
+    likes: ["peace", "gentle tones", "healing"],
+    dislikes: ["chaos", "rush", "recklessness"],
+    modifiers: { good: 1.0, neutral: 0.9, bad: 1.2 }
+  }
+};
+
+const updateBehavior = (name) => {
+  const bond = state.pokemonBond[name] || 0;
+  const personality = state.pokemonData[name]?.personality;
+  if (!personality) return;
+
+  if (!state.pokemonData[name].behavior) {
+    state.pokemonData[name].behavior = {};
+  }
+
+  const behavior = state.pokemonData[name].behavior;
+
+  switch (personality) {
+    case "Timid":
+      behavior.actsProtective = bond >= 60;
+      behavior.disobeysUnderStress = bond < 40;
+      behavior.passiveUntilProvoked = true;
+      break;
+    case "Bold":
+      behavior.initiatesHelp = bond >= 50;
+      behavior.disobeysUnderStress = bond < 30;
+      behavior.obeysCommands = bond >= 20;
+      break;
+    case "Lonely":
+      behavior.reactsToMistreatment = bond < 50;
+      behavior.obeysCommands = bond >= 40;
+      break;
+    case "Jolly":
+      behavior.initiatesHelp = bond >= 40;
+      behavior.actsProtective = bond >= 60;
+      break;
+    case "Calm":
+      behavior.passiveUntilProvoked = true;
+      behavior.obeysCommands = bond >= 30;
+      break;
+  }
+};
+
+if (!state.pokemonItems) state.pokemonItems = {};
+
+const possibleGenders = ["Male", "Female"];
+
+// --- Genderless Pokémon ---
+const genderlessSpecies = [
+  "Magnemite","Magneton","Voltorb","Electrode","Staryu","Starmie",
+  "Porygon","Porygon2","Porygon-Z","Beldum","Metang","Metagross",
+  "Bronzor","Bronzong","Cryogonal","Baltoy","Claydol",
+  // Legendary and Mythical (most)
+  "Articuno","Zapdos","Moltres","Mewtwo","Mew",
+  "Raikou","Entei","Suicune",
+  "Lugia","Ho-Oh","Regirock","Regice","Registeel","Latios","Latias",
+  "Kyogre","Groudon","Rayquaza","Jirachi","Deoxys",
+  "Uxie","Mesprit","Azelf","Dialga","Palkia","Heatran", // (Heatran: special, see below)
+  "Regigigas","Giratina","Cresselia", // (Cresselia is all-female; see below)
+  "Manaphy","Phione","Darkrai","Shaymin","Arceus",
+  "Victini","Reshiram","Zekrom","Kyurem","Keldeo","Meloetta","Genesect",
+  "Xerneas","Yveltal","Zygarde","Diancie","Hoopa","Volcanion",
+  "Tapu Koko","Tapu Lele","Tapu Bulu","Tapu Fini",
+  "Cosmog","Cosmoem","Solgaleo","Lunala","Nihilego","Buzzwole","Pheromosa",
+  "Xurkitree","Celesteela","Kartana","Guzzlord","Necrozma","Magearna","Marshadow",
+  "Zeraora","Meltan","Melmetal"
+  // Add more as needed
+];
+
+// --- All-male species ---
+const allMaleSpecies = [
+  "Nidoran♂", "Nidorino", "Nidoking", "Tauros", "Hitmonlee", "Hitmonchan", "Hitmontop",
+  "Sawk", "Throh", "Gallade", "Rufflet", "Braviary"
+];
+
+// --- All-female species ---
+const allFemaleSpecies = [
+  "Nidoran♀", "Nidorina", "Nidoqueen", "Chansey", "Blissey", "Jynx", "Kangaskhan",
+  "Smoochum", "Illumise", "Cresselia", "Froslass"
+];
+
+// --- Special gender splits and ratios (species: [female%, male%]) ---
+const specialGenderRatios = {
+  // Starters, Eevee, Fossils, etc: 12.5% Female, 87.5% Male
+  "Bulbasaur": [0.125, 0.875], "Ivysaur": [0.125, 0.875], "Venusaur": [0.125, 0.875],
+  "Charmander": [0.125, 0.875], "Charmeleon": [0.125, 0.875], "Charizard": [0.125, 0.875],
+  "Squirtle": [0.125, 0.875], "Wartortle": [0.125, 0.875], "Blastoise": [0.125, 0.875],
+  "Chikorita": [0.125, 0.875], "Cyndaquil": [0.125, 0.875], "Totodile": [0.125, 0.875],
+  "Treecko": [0.125, 0.875], "Torchic": [0.125, 0.875], "Mudkip": [0.125, 0.875],
+  "Turtwig": [0.125, 0.875], "Chimchar": [0.125, 0.875], "Piplup": [0.125, 0.875],
+  "Snivy": [0.125, 0.875], "Tepig": [0.125, 0.875], "Oshawott": [0.125, 0.875],
+  "Froakie": [0.125, 0.875], "Fennekin": [0.125, 0.875], "Chespin": [0.125, 0.875],
+  "Rowlet": [0.125, 0.875], "Litten": [0.125, 0.875], "Popplio": [0.125, 0.875],
+  "Eevee": [0.125, 0.875],
+  // Combee, Salandit, Meowstic, Pyroar, etc.
+  "Combee": [0.125, 0.875], // Only female evolves
+  "Salandit": [0.125, 0.875], // Only female evolves
+  "Tornadus": [0.0, 1.0], "Thundurus": [0.0, 1.0], "Landorus": [0.0, 1.0], // All-male
+  "Volbeat": [0.0, 1.0], "Illumise": [1.0, 0.0], // Volbeat: male, Illumise: female
+  "Meowstic": [0.5, 0.5], // Male and female have different forms
+  "Pyroar": [0.25, 0.75], // 25% female, 75% male
+  // Add more as needed!
+};
+
+// --- Legendary gender EXCEPTIONS (some are not genderless!) ---
+const legendaryExceptions = {
+  "Heatran": [0.5, 0.5], // 50/50 male/female
+  // Add more as needed
+};
+
+function assignGender(name, species) {
+  if (!state.pokemonData[name]) state.pokemonData[name] = {};
+
+  if (!state.pokemonData[name].gender) {
+    // Genderless check (legendary, mythical, objects, some Ultra Beasts, etc)
+    if (genderlessSpecies.includes(species)) {
+      state.pokemonData[name].gender = "Genderless";
+      return;
+    }
+
+    // All-male/all-female
+    if (allMaleSpecies.includes(species)) {
+      state.pokemonData[name].gender = "Male";
+      return;
+    }
+    if (allFemaleSpecies.includes(species)) {
+      state.pokemonData[name].gender = "Female";
+      return;
+    }
+
+    // Legendary/mythical exceptions
+    if (legendaryExceptions[species]) {
+      const [femaleChance, maleChance] = legendaryExceptions[species];
+      state.pokemonData[name].gender =
+        Math.random() < femaleChance ? "Female" : "Male";
+      return;
+    }
+
+    // Custom gender ratios
+    if (specialGenderRatios[species]) {
+      const [femaleChance, maleChance] = specialGenderRatios[species];
+      const roll = Math.random();
+      state.pokemonData[name].gender =
+        roll < femaleChance ? "Female" : "Male";
+      return;
+    }
+
+    // Default: 50/50
+    state.pokemonData[name].gender =
+      possibleGenders[Math.floor(Math.random() * possibleGenders.length)];
+  }
+}
+
+
+const evolutionConditions = {
+  // --- Friendship/Bond Evolutions ---
+  "Pichu":      [ { evolvesTo: "Pikachu",   condition: name => state.pokemonBond[name] >= 80 } ],
+  "Cleffa":     [ { evolvesTo: "Clefairy",  condition: name => state.pokemonBond[name] >= 80 } ],
+  "Igglybuff":  [ { evolvesTo: "Jigglypuff",condition: name => state.pokemonBond[name] >= 80 } ],
+  "Togepi":     [ { evolvesTo: "Togetic",   condition: name => state.pokemonBond[name] >= 80 } ],
+  "Budew":      [ { evolvesTo: "Roserade",  condition: name => state.pokemonBond[name] >= 80 && state.timeOfDay === "day" } ],
+  "Buneary":    [ { evolvesTo: "Lopunny",   condition: name => state.pokemonBond[name] >= 80 } ],
+  "Chingling":  [ { evolvesTo: "Chimecho",  condition: name => state.pokemonBond[name] >= 80 && state.timeOfDay === "night" } ],
+  "Golbat":     [ { evolvesTo: "Crobat",    condition: name => state.pokemonBond[name] >= 80 } ],
+  "Riolu":      [ { evolvesTo: "Lucario",   condition: name => state.pokemonBond[name] >= 80 && state.timeOfDay === "day" } ],
+  "Munchlax":   [ { evolvesTo: "Snorlax",   condition: name => state.pokemonBond[name] >= 80 } ],
+  "Chansey":    [ { evolvesTo: "Blissey",   condition: name => state.pokemonBond[name] >= 80 } ],
+  "Azurill":    [ { evolvesTo: "Marill",    condition: name => state.pokemonBond[name] >= 80 } ],
+ "Eevee": [
+  // --- Canon ---
+  { evolvesTo: "Espeon",   condition: name => state.pokemonBond[name] >= 75 && state.timeOfDay === "day" && !hasFairyMove(name) },
+  { evolvesTo: "Umbreon",  condition: name => state.pokemonBond[name] >= 75 && state.timeOfDay === "night" && !hasFairyMove(name) },
+  { evolvesTo: "Sylveon",  condition: name => state.pokemonBond[name] >= 80 && hasFairyMove(name) },
+  { evolvesTo: "Vaporeon", condition: name => state.pokemonItems[name] === "Water Stone" },
+  { evolvesTo: "Jolteon",  condition: name => state.pokemonItems[name] === "Thunder Stone" },
+  { evolvesTo: "Flareon",  condition: name => state.pokemonItems[name] === "Fire Stone" },
+  { evolvesTo: "Leafeon",  condition: name => state.location === "Forest" && state.pokemonItems[name] === "Leaf Stone" },
+  { evolvesTo: "Glaceon",  condition: name => state.location === "Cave" && state.pokemonItems[name] === "Ice Stone" },
+
+  // --- Original Evolutions ---
+
+  // Drakeon (Dragon)
+  { evolvesTo: "Drakeon", condition: name =>
+      state.location === "Cave" &&
+      state.pokemonBond[name] >= 80 &&
+      state.pokemonItems[name] === "Dragon Scale"
+  },
+
+  // Spectreon (Ghost)
+  { evolvesTo: "Spectreon", condition: name =>
+      state.locationType === "Graveyard" &&
+      state.pokemonBond[name] >= 75 &&
+      (state.pokemonData[name]?.lastBattleOutcome === "fainted" || state.timeOfDay === "night")
+  },
+
+  // Venomeon (Poison)
+  { evolvesTo: "Venomeon", condition: name =>
+      (state.pokemonItems[name] === "Toxic Orb" ||
+       (state.biomes?.[state.location] === "Polluted")) &&
+      state.pokemonBond[name] >= 70
+  },
+
+  // Titaniteon (Steel/Rock)
+  { evolvesTo: "Titaniteon", condition: name =>
+      state.pokemonItems[name] === "Metal Coat" &&
+      ["Mountain", "Mine"].includes(state.locationType) &&
+      state.pokemonBond[name] >= 75
+  },
+
+  // Pyreleon (Fire/Fighting)
+  { evolvesTo: "Pyreleon", condition: name =>
+      state.locationType === "Volcano" &&
+      state.pokemonBond[name] >= 80 &&
+      hasMoveType(name, "Fighting")
+  },
+
+  // Tempesteon (Flying/Water)
+  { evolvesTo: "Tempesteon", condition: name =>
+      state.weather === "Rain" &&
+      state.locationType === "River" &&
+      state.pokemonBond[name] >= 75 &&
+      hasMoveType(name, "Flying")
+  },
+
+  // Shadeon (Dark/Fairy)
+  { evolvesTo: "Shadeon", condition: name =>
+      state.timeOfDay === "night" &&
+      state.pokemonBond[name] >= 90 &&
+      state.pokemonItems[name] === "Twilight Charm"
+  },
+
+  // Arboreon (Grass/Ground)
+  { evolvesTo: "Arboreon", condition: name =>
+      state.locationType === "Forest" &&
+      state.pokemonData[name]?.lastDefeatedType === "Rock" &&
+      hasMove(name, "Dig")
+  },
+
+  // Crypteon (Ice/Ghost)
+  { evolvesTo: "Crypteon", condition: name =>
+      (state.weather === "Fog" || state.weather === "Snow") &&
+      state.timeOfDay === "night" &&
+      state.locationType === "Graveyard" &&
+      state.pokemonBond[name] >= 80
+  }
+],
+
+  // --- Happiness, Level, Gender, Time, Item, Move, etc. ---
+  "Togetic":      [ { evolvesTo: "Togekiss",   condition: name => state.pokemonItems[name] === "Shiny Stone" } ],
+  "Roselia":      [ { evolvesTo: "Roserade",   condition: name => state.pokemonItems[name] === "Shiny Stone" } ],
+  "Minccino":     [ { evolvesTo: "Cinccino",   condition: name => state.pokemonItems[name] === "Shiny Stone" } ],
+  "Snorunt": [
+    { evolvesTo: "Froslass", condition: name => state.pokemonData[name]?.gender === "Female" && state.pokemonItems[name] === "Dawn Stone" },
+    { evolvesTo: "Glalie",   condition: name => state.pokemonItems[name] === "None" } // fallback
+  ],
+  "Kirlia": [
+    { evolvesTo: "Gallade",   condition: name => state.pokemonData[name]?.gender === "Male" && state.pokemonItems[name] === "Dawn Stone" },
+    { evolvesTo: "Gardevoir", condition: name => state.pokemonItems[name] !== "Dawn Stone" } // fallback, could be by level
+  ],
+  "Combee":     [ { evolvesTo: "Vespiquen", condition: name => state.pokemonData[name]?.gender === "Female" } ],
+  "Salandit":   [ { evolvesTo: "Salazzle",  condition: name => state.pokemonData[name]?.gender === "Female" && state.pokemonLevel[name] >= 33 } ],
+  "Rockruff":   [ { evolvesTo: "Lycanroc (Midday)", condition: name => state.pokemonLevel[name] >= 25 && state.timeOfDay === "day" },
+                  { evolvesTo: "Lycanroc (Midnight)", condition: name => state.pokemonLevel[name] >= 25 && state.timeOfDay === "night" },
+                  { evolvesTo: "Lycanroc (Dusk)", condition: name => state.pokemonLevel[name] >= 25 && isDuskTime() } ],
+  "Yamask":     [ { evolvesTo: "Cofagrigus", condition: name => state.region !== "Galar" && state.pokemonLevel[name] >= 34 },
+                  { evolvesTo: "Runerigus",  condition: name => state.region === "Galar" && state.pokemonLevel[name] >= 34 && state.damageTaken[name] >= 49 && state.location === "Stone Bridge" } ],
+  "Milcery":    [ { evolvesTo: "Alcremie", condition: name => state.pokemonItems[name]?.includes("Sweet") && state.spun(name) } ],
+  "Mime Jr.":   [ { evolvesTo: "Mr. Mime", condition: name => state.pokemonMoves[name]?.includes("Mimic") } ],
+  "Bonsly":     [ { evolvesTo: "Sudowoodo", condition: name => state.pokemonMoves[name]?.includes("Mimic") } ],
+  "Steenee":    [ { evolvesTo: "Tsareena", condition: name => state.pokemonMoves[name]?.includes("Stomp") } ],
+  "Piloswine":  [ { evolvesTo: "Mamoswine", condition: name => state.pokemonMoves[name]?.includes("Ancient Power") } ],
+  "Aipom":      [ { evolvesTo: "Ambipom", condition: name => state.pokemonMoves[name]?.includes("Double Hit") } ],
+  "Lickitung":  [ { evolvesTo: "Lickilicky", condition: name => state.pokemonMoves[name]?.includes("Rollout") } ],
+  "Tangela":    [ { evolvesTo: "Tangrowth", condition: name => state.pokemonMoves[name]?.includes("Ancient Power") } ],
+  "Swinub":     [ { evolvesTo: "Piloswine", condition: name => state.pokemonLevel[name] >= 33 } ],
+  // --- Trade and Trade+Item Evolutions ---
+  "Machoke":    [ { evolvesTo: "Machamp", condition: name => state.tradedPokemon?.includes(name) } ],
+  "Graveler":   [ { evolvesTo: "Golem", condition: name => state.tradedPokemon?.includes(name) } ],
+  "Kadabra":    [ { evolvesTo: "Alakazam", condition: name => state.tradedPokemon?.includes(name) } ],
+  "Haunter":    [ { evolvesTo: "Gengar", condition: name => state.tradedPokemon?.includes(name) } ],
+  "Boldore":    [ { evolvesTo: "Gigalith", condition: name => state.tradedPokemon?.includes(name) } ],
+  "Onix":       [ { evolvesTo: "Steelix", condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "Metal Coat" } ],
+  "Scyther":    [ { evolvesTo: "Scizor", condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "Metal Coat" } ],
+  "Seadra":     [ { evolvesTo: "Kingdra", condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "Dragon Scale" } ],
+  "Slowpoke":   [ { evolvesTo: "Slowking", condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "King's Rock" } ],
+  "Clamperl": [
+    { evolvesTo: "Huntail",  condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "Deep Sea Tooth" },
+    { evolvesTo: "Gorebyss", condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "Deep Sea Scale" }
+  ],
+  "Dusclops":   [ { evolvesTo: "Dusknoir", condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "Reaper Cloth" } ],
+  "Feebas":     [ { evolvesTo: "Milotic", condition: name => state.pokemonItems[name] === "Prism Scale" || state.pokemonBond[name] >= 80 } ],
+  // --- Stone Evolutions (majority, not all listed) ---
+  "Pikachu":    [ { evolvesTo: "Raichu", condition: name => state.pokemonItems[name] === "Thunder Stone" } ],
+  "Exeggcute":  [ { evolvesTo: "Exeggutor", condition: name => state.pokemonItems[name] === "Leaf Stone" } ],
+  "Vulpix":     [ { evolvesTo: "Ninetales", condition: name => state.pokemonItems[name] === "Fire Stone" } ],
+  "Growlithe":  [ { evolvesTo: "Arcanine", condition: name => state.pokemonItems[name] === "Fire Stone" } ],
+  "Poliwhirl": [
+    { evolvesTo: "Poliwrath", condition: name => state.pokemonItems[name] === "Water Stone" },
+    { evolvesTo: "Politoed",  condition: name => state.tradedPokemon?.includes(name) && state.pokemonItems[name] === "King's Rock" }
+  ],
+  // --- Region/location-based evolutions ---
+  "Magneton":   [ { evolvesTo: "Magnezone", condition: name => state.location === "Power Plant" } ],
+  "Nosepass":   [ { evolvesTo: "Probopass", condition: name => state.location === "Cave" } ],
+  "Charjabug":  [ { evolvesTo: "Vikavolt",  condition: name => state.location === "Cave" } ],
+  
+   // Sudowoodo → Arbowoodo
+  "Sudowoodo": [
+    {
+      evolvesTo: "Arbowoodo",
+      condition: name => 
+        state.location === "Forest" &&
+        state.pokemonMoves[name]?.some(m => m.toLowerCase().includes("grass"))
+    }
+  ],
+
+  // Tropius → Tropicore
+  "Tropius": [
+    {
+      evolvesTo: "Tropicore",
+      condition: name =>
+        state.biomes?.[state.location] === "Tropical" &&
+        state.pokemonBond[name] >= 85 &&
+        state.pokemonItems[name] === "Dragon Fruit"
+    }
+  ],
+
+  // Solrock → Astrorock
+  "Solrock": [
+    {
+      evolvesTo: "Astrorock",
+      condition: name =>
+        state.weather === "Clear" &&
+        state.timeOfDay === "afternoon" && // noon/afternoon
+        state.pokemonItems[name] === "Sun Fragment"
+    }
+  ],
+
+  // Lunatone → Noctustone
+  "Lunatone": [
+    {
+      evolvesTo: "Noctustone",
+      condition: name =>
+        (state.weather === "Fog" || state.weather === "Storm") &&
+        state.timeOfDay === "night" &&
+        state.pokemonItems[name] === "Moon Shard"
+    }
+  ],
+
+  // Electrode → Voltacore
+  "Electrode": [
+    {
+      evolvesTo: "Voltacore",
+      condition: name =>
+        state.locationType === "Urban" &&
+        state.pokemonBond[name] >= 80 &&
+        state.pokemonItems[name] === "Metal Coat"
+    }
+  ],
+
+  // Porygon2 → Porygon-ZX
+  "Porygon2": [
+    {
+      evolvesTo: "Porygon-ZX",
+      condition: name =>
+        state.locationType === "Power Plant" &&
+        state.pokemonItems[name] === "Corrupted Disc"
+    }
+  ],
+
+  // Primeape → Rampanape (Dark, "Vengeful", fainted multiple times)
+  "Primeape": [
+    {
+      evolvesTo: "Rampanape",
+      condition: name =>
+        (state.pokemonData[name]?.hiddenNature === "Vengeful") &&
+        (state.pokemonData[name]?.faintsInLife >= 3)
+    }
+  ],
+
+  // Tauros → Tauron (Fighting, after consecutive crits)
+  "Tauros": [
+    {
+      evolvesTo: "Tauron",
+      condition: name =>
+        state.pokemonData[name]?.consecutiveCriticalHits >= 3
+    }
+  ],
+
+  // Dunsparce → Serapharce (Fairy, Calm/Timid, meadows)
+  "Dunsparce": [
+    {
+      evolvesTo: "Serapharce",
+      condition: name =>
+        ["Calm", "Timid"].includes(state.pokemonData[name]?.personality) &&
+        (state.location === "Meadow" || state.biomes?.[state.location] === "Meadow") &&
+        state.pokemonBond[name] >= 75
+    }
+  ],
+
+  // Mawile → Jawile (Steel/Dark, Bold, after hard battles)
+  "Mawile": [
+    {
+      evolvesTo: "Jawile",
+      condition: name =>
+        state.pokemonData[name]?.personality === "Bold" &&
+        state.pokemonData[name]?.notableVictories >= 3 &&
+        state.pokemonBond[name] >= 70
+    }
+  ],
+
+  // Dragonair → Luminair (Dragon/Fairy, special item, weather)
+  "Dragonair": [
+    {
+      evolvesTo: "Luminair",
+      condition: name =>
+        state.weather === "Clear" &&
+        state.pokemonItems[name] === "Lumina Orb" &&
+        state.pokemonBond[name] >= 85
+    }
+  ],
+
+  // Ninetales → Mythitails (Fire/Ghost, legendary event or dream)
+  "Ninetales": [
+    {
+      evolvesTo: "Mythitails",
+      condition: name =>
+        (state.flags?.defeatedLegendary === true || state.flags?.specialDreamEvent === true)
+    }
+  ],
+  "Sirfetch’d": [
+ 
+    { evolvesTo: "Aegisfetch’d", condition: name =>
+    state.pokemonData[name]?.species === "Sirfetch’d" &&
+    state.pokemonBond[name] >= 85 &&
+    state.pokemonItems[name] === "King’s Crest" &&
+    state.pokemonData[name]?.lastDefeatedType === "Steel" &&
+    (state.pokemonData[name]?.level || 0) >= 50
+    }
+],
+  "Luxray": [
+    { evolvesTo: "Luxraijin", condition: name =>
+    state.pokemonData[name]?.species === "Luxray" &&
+    (state.pokemonData[name]?.level || 0) >= 55 &&
+    state.timeOfDay === "night" &&
+    hasMove(name, "Dark Pulse") &&
+    state.pokemonBond[name] >= 80
+    }
+],
+  "Flygon": [
+    { evolvesTo: "Flygonarch", condition: name =>
+    state.pokemonData[name]?.species === "Flygon" &&
+    state.weather === "Sandstorm" &&
+    hasMove(name, "Dragon Dance") &&
+    (state.pokemonData[name]?.level || 0) >= 60
+    }
+],
+  "Rapidash": [
+    { evolvesTo: "Pegastride", condition: name =>
+    state.pokemonData[name]?.species === "Rapidash" &&
+    state.pokemonBond[name] >= 85 &&
+    state.weather === "Clear" &&
+    hasMove(name, "Air Slash")
+    }
+],
+  "Donphan": [
+    { evolvesTo: "Colossaphant", condition: name =>
+    state.pokemonData[name]?.species === "Donphan" &&
+    state.pokemonItems[name] === "Steel Plate" &&
+    (state.pokemonData[name]?.level || 0) >= 55 &&
+    state.pokemonData[name]?.protectedAlly === true
+    }
+],
+  "Butterfree": [
+    { evolvesTo: "Luminafree", condition: name =>
+    state.pokemonData[name]?.species === "Butterfree" &&
+    state.pokemonBond[name] >= 75 &&
+    (state.pokemonData[name]?.level || 0) >= 45 &&
+    hasMove(name, "Quiver Dance") &&
+    ["morning","afternoon"].includes(state.timeOfDay)
+    }
+],
+  "Toxicroak": [
+    { evolvesTo: "Maladroak", condition: name =>
+    state.pokemonData[name]?.species === "Toxicroak" &&
+    state.pokemonItems[name] === "Black Sludge" &&
+    (state.pokemonData[name]?.level || 0) >= 55 &&
+    state.timeOfDay === "night" &&
+    state.reputation["EcoGuard"] < 0
+    }
+],
+  "Sableye": [
+    { evolvesTo: "Gemgeist", condition: name =>
+    state.pokemonData[name]?.species === "Sableye" &&
+    state.pokemonBond[name] >= 70 &&
+    state.pokemonItems[name] === "Rainbow Gem" &&
+    (state.pokemonData[name]?.level || 0) >= 50 &&
+    state.locationType === "Cave"
+    }
+],
+  "Noctowl": [
+    { evolvesTo: "Aethereowl", condition: name =>
+    state.pokemonData[name]?.species === "Noctowl" &&
+    (state.pokemonData[name]?.level || 0) >= 48 &&
+    state.timeOfDay === "night" &&
+    state.pokemonData[name]?.lastCritMove === "Extrasensory"
+    }
+],
+  "Wigglytuff": [
+    { evolvesTo: "Dreamatuff", condition: name =>
+    state.pokemonData[name]?.species === "Wigglytuff" &&
+    state.pokemonBond[name] >= 85 &&
+    state.pokemonItems[name] === "Dream Mist" &&
+    state.pokemonData[name]?.lastDefeatedType === "Ghost"
+    }
+],
+  "Ledian": [
+    { evolvesTo: "Lediamond", condition: name =>
+    state.pokemonData[name]?.species === "Ledian" &&
+    state.weather === "Clear" &&
+    state.pokemonBond[name] >= 75 &&
+    state.pokemonItems[name] === "Shiny Stone" &&
+    state.locationType === "Forest"
+    }
+],
+  "Sunflora": [
+    { evolvesTo: "Solaria", condition: name =>
+    state.pokemonData[name]?.species === "Sunflora" &&
+    state.weather === "Harsh Sunlight" &&
+    hasMove(name, "Solar Beam") &&
+    (state.pokemonData[name]?.level || 0) >= 50
+    }
+],
+  "Swoobat": [
+    { evolvesTo: "Mystibat", condition: name =>
+    state.pokemonData[name]?.species === "Swoobat" &&
+    state.pokemonBond[name] >= 80 &&
+    hasMove(name, "Calm Mind") &&
+    state.timeOfDay === "evening"
+    }
+],
+  "Ariados": [
+    { evolvesTo: "Widoweb", condition: name =>
+    state.pokemonData[name]?.species === "Ariados" &&
+    state.pokemonItems[name] === "Black Sludge" &&
+    state.timeOfDay === "night" &&
+    state.pokemonData[name]?.lastBattleInflictedStatus === "Poisoned"
+    }
+],
+  "Persian": [
+    { evolvesTo: "Saracenian", condition: name =>
+    state.pokemonData[name]?.species === "Persian" &&
+    state.timeOfDay === "night" &&
+    state.pokemonBond[name] >= 80 &&
+    (state.reputation["GLU"] || 0) < 0
+    }
+],
+  "Noivern": [
+    { evolvesTo: "Nosferagon", condition: name =>
+    state.pokemonData[name]?.species === "Noivern" &&
+    state.pokemonItems[name] === "Dread Fang" &&
+    state.timeOfDay === "night" &&
+    state.pokemonBond[name] >= 85
+    }
+],
+  "Bibarel": [
+    { evolvesTo: "Biberge", condition: name =>
+    state.pokemonData[name]?.species === "Bibarel" &&
+    state.flags?.["builtDam"] === true &&
+    state.pokemonBond[name] >= 80
+    }
+],
+  "Sudowoodo": [
+    { evolvesTo: "Grootudo", condition: name =>
+    state.pokemonData[name]?.species === "Sudowoodo" &&
+    state.weather === "Rain" &&
+    state.locationType === "Forest" &&
+    state.pokemonBond[name] >= 80
+    }
+],
+  "Dunsparce": [
+    { evolvesTo: "Dunseraph", condition: name =>
+    state.pokemonData[name]?.species === "Dunsparce" &&
+    (state.location === "Great Crater" || state.locationType === "Ruins") &&
+    hasMove(name, "Dragon Rush") &&
+    state.pokemonBond[name] >= 80
+    }
+],
+  // --- Bulbasaur Line ---
+  "Bulbasaur": [
+    { evolvesTo: "Ivysaur", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Ivysaur": [
+    { evolvesTo: "Venusaur", condition: name => (state.pokemonData[name]?.level || 0) >= 32 },
+  // New: Floraconda, Grass/Dragon, requires "Dragon Scale" and "Outrage"
+    { evolvesTo: "Floraconda", condition: name =>
+      state.pokemonItems[name] === "Dragon Scale" &&
+      hasMove(name, "Outrage") &&
+      (state.pokemonData[name]?.level || 0) >= 38
+    }
+],
+
+// --- Charmander Line ---
+  "Charmander": [
+    { evolvesTo: "Charmeleon", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Charmeleon": [
+    { evolvesTo: "Charizard", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Charagon, Fire/Steel, requires "Metal Coat" and "Iron Tail"
+    { evolvesTo: "Charagon", condition: name =>
+      state.pokemonItems[name] === "Metal Coat" &&
+      hasMove(name, "Iron Tail") &&
+      (state.pokemonData[name]?.level || 0) >= 40
+    }
+],
+
+// --- Squirtle Line ---
+  "Squirtle": [
+    { evolvesTo: "Wartortle", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Wartortle": [
+    { evolvesTo: "Blastoise", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Tortitan, Water/Steel, requires "Iron Shell" and "Iron Defense"
+    { evolvesTo: "Tortitan", condition: name =>
+      state.pokemonItems[name] === "Iron Shell" &&
+      hasMove(name, "Iron Defense") &&
+      (state.pokemonData[name]?.level || 0) >= 45
+    }
+],
+  // --- Chikorita Line ---
+  "Chikorita": [
+    { evolvesTo: "Bayleef", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Bayleef": [
+    { evolvesTo: "Meganium", condition: name => (state.pokemonData[name]?.level || 0) >= 32 },
+  // New: Aromalief, Grass/Fairy, requires "Shiny Stone" and "Aromatherapy"
+    { evolvesTo: "Aromalief", condition: name =>
+      state.pokemonItems[name] === "Shiny Stone" &&
+      hasMove(name, "Aromatherapy") &&
+      (state.pokemonData[name]?.level || 0) >= 38
+    }
+],
+
+// --- Cyndaquil Line ---
+  "Cyndaquil": [
+    { evolvesTo: "Quilava", condition: name => (state.pokemonData[name]?.level || 0) >= 14 }
+],
+  "Quilava": [
+    { evolvesTo: "Typhlosion", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Typhlare, Fire/Ground, requires "Earth Plate" and "Earthquake"
+    { evolvesTo: "Typhlare", condition: name =>
+      state.pokemonItems[name] === "Earth Plate" &&
+      hasMove(name, "Earthquake") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+
+// --- Totodile Line ---
+  "Totodile": [
+    { evolvesTo: "Croconaw", condition: name => (state.pokemonData[name]?.level || 0) >= 18 }
+],
+  "Croconaw": [
+    { evolvesTo: "Feraligatr", condition: name => (state.pokemonData[name]?.level || 0) >= 30 },
+  // New: Ferociousaur, Water/Dark, requires "Black Glasses" and "Crunch"
+    { evolvesTo: "Ferociousaur", condition: name =>
+      state.pokemonItems[name] === "Black Glasses" &&
+      hasMove(name, "Crunch") &&
+      (state.pokemonData[name]?.level || 0) >= 40
+    }
+],
+  // --- Treecko Line ---
+  "Treecko": [
+    { evolvesTo: "Grovyle", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Grovyle": [
+    { evolvesTo: "Sceptile", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Dragontile, Grass/Dragon, requires "Dragon Fang" and "Dragon Pulse"
+    { evolvesTo: "Dragontile", condition: name =>
+      state.pokemonItems[name] === "Dragon Fang" &&
+      hasMove(name, "Dragon Pulse") &&
+      (state.pokemonData[name]?.level || 0) >= 42
+    }
+],
+
+// --- Torchic Line ---
+  "Torchic": [
+    { evolvesTo: "Combusken", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Combusken": [
+    { evolvesTo: "Blaziken", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Phoenixen, Fire/Flying, requires "Sky Plate" and "Brave Bird"
+    { evolvesTo: "Phoenixen", condition: name =>
+      state.pokemonItems[name] === "Sky Plate" &&
+      hasMove(name, "Brave Bird") &&
+      (state.pokemonData[name]?.level || 0) >= 45
+    }
+],
+
+// --- Mudkip Line ---
+  "Mudkip": [
+    { evolvesTo: "Marshtomp", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Marshtomp": [
+    { evolvesTo: "Swampert", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Swamporror, Water/Ghost, requires "Spell Tag" and "Shadow Ball"
+    { evolvesTo: "Swamporror", condition: name =>
+      state.pokemonItems[name] === "Spell Tag" &&
+      hasMove(name, "Shadow Ball") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+    // --- Turtwig Line ---
+  "Turtwig": [
+    { evolvesTo: "Grotle", condition: name => (state.pokemonData[name]?.level || 0) >= 18 }
+],
+  "Grotle": [
+    { evolvesTo: "Torterra", condition: name => (state.pokemonData[name]?.level || 0) >= 32 },
+  // New: Verdterra, Grass/Rock, requires "Hard Stone" and "Rock Slide"
+    { evolvesTo: "Verdterra", condition: name =>
+      state.pokemonItems[name] === "Hard Stone" &&
+      hasMove(name, "Rock Slide") &&
+      (state.pokemonData[name]?.level || 0) >= 40
+    }
+],
+
+// --- Chimchar Line ---
+  "Chimchar": [
+    { evolvesTo: "Monferno", condition: name => (state.pokemonData[name]?.level || 0) >= 14 }
+],
+  "Monferno": [
+    { evolvesTo: "Infernape", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Infernox, Fire/Steel, requires "Metal Coat" and "Flash Cannon"
+    { evolvesTo: "Infernox", condition: name =>
+      state.pokemonItems[name] === "Metal Coat" &&
+      hasMove(name, "Flash Cannon") &&
+      (state.pokemonData[name]?.level || 0) >= 45
+    }
+],
+
+// --- Piplup Line ---
+  "Piplup": [
+    { evolvesTo: "Prinplup", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Prinplup": [
+    { evolvesTo: "Empoleon", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Emperian, Water/Flying, requires "Sky Plate" and "Hurricane"
+    { evolvesTo: "Emperian", condition: name =>
+      state.pokemonItems[name] === "Sky Plate" &&
+      hasMove(name, "Hurricane") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+  // --- Snivy Line ---
+  "Snivy": [
+    { evolvesTo: "Servine", condition: name => (state.pokemonData[name]?.level || 0) >= 17 }
+],
+  "Servine": [
+    { evolvesTo: "Serperior", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Viperior, Grass/Poison, requires "Poison Barb" and "Gunk Shot"
+    { evolvesTo: "Viperior", condition: name =>
+      state.pokemonItems[name] === "Poison Barb" &&
+      hasMove(name, "Gunk Shot") &&
+      (state.pokemonData[name]?.level || 0) >= 41
+    }
+],
+
+// --- Tepig Line ---
+  "Tepig": [
+    { evolvesTo: "Pignite", condition: name => (state.pokemonData[name]?.level || 0) >= 17 }
+],
+  "Pignite": [
+    { evolvesTo: "Emboar", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Boarupt, Fire/Electric, requires "Cell Battery" and "Wild Charge"
+    { evolvesTo: "Boarupt", condition: name =>
+      state.pokemonItems[name] === "Cell Battery" &&
+      hasMove(name, "Wild Charge") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+
+// --- Oshawott Line ---
+  "Oshawott": [
+    { evolvesTo: "Dewott", condition: name => (state.pokemonData[name]?.level || 0) >= 17 }
+],
+  "Dewott": [
+    { evolvesTo: "Samurott", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Otterlord, Water/Fighting, requires "Black Belt" and "Close Combat"
+    { evolvesTo: "Otterlord", condition: name =>
+      state.pokemonItems[name] === "Black Belt" &&
+      hasMove(name, "Close Combat") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+// --- Chespin Line ---
+  "Chespin": [
+    { evolvesTo: "Quilladin", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Quilladin": [
+    { evolvesTo: "Chesnaught", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Thicketusk, Grass/Ground, requires "Soft Sand" and "Earthquake"
+    { evolvesTo: "Thicketusk", condition: name =>
+      state.pokemonItems[name] === "Soft Sand" &&
+      hasMove(name, "Earthquake") &&
+      (state.pokemonData[name]?.level || 0) >= 42
+    }
+],
+
+// --- Fennekin Line ---
+  "Fennekin": [
+    { evolvesTo: "Braixen", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Braixen": [
+    { evolvesTo: "Delphox", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Vulphexa, Fire/Fairy, requires "Pixie Plate" and "Dazzling Gleam"
+    { evolvesTo: "Vulphexa", condition: name =>
+      state.pokemonItems[name] === "Pixie Plate" &&
+      hasMove(name, "Dazzling Gleam") &&
+      (state.pokemonData[name]?.level || 0) >= 42
+    }
+],
+
+// --- Froakie Line ---
+  "Froakie": [
+    { evolvesTo: "Frogadier", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Frogadier": [
+    { evolvesTo: "Greninja", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Greninja-X, Water/Steel, requires "Metal Coat" and "Iron Head"
+    { evolvesTo: "Greninja-X", condition: name =>
+      state.pokemonItems[name] === "Metal Coat" &&
+      hasMove(name, "Iron Head") &&
+      (state.pokemonData[name]?.level || 0) >= 45
+    }
+],
+// --- Rowlet Line ---
+  "Rowlet": [
+    { evolvesTo: "Dartrix", condition: name => (state.pokemonData[name]?.level || 0) >= 17 }
+],
+  "Dartrix": [
+    { evolvesTo: "Decidueye", condition: name => (state.pokemonData[name]?.level || 0) >= 34 },
+  // New: Dartgeist, Grass/Ghost, requires "Spell Tag" and "Shadow Claw"
+    { evolvesTo: "Dartgeist", condition: name =>
+      state.pokemonItems[name] === "Spell Tag" &&
+      hasMove(name, "Shadow Claw") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+
+// --- Litten Line ---
+  "Litten": [
+    { evolvesTo: "Torracat", condition: name => (state.pokemonData[name]?.level || 0) >= 17 }
+],
+  "Torracat": [
+    { evolvesTo: "Incineroar", condition: name => (state.pokemonData[name]?.level || 0) >= 34 },
+  // New: Pyrocorn, Fire/Fairy, requires "Pixie Plate" and "Play Rough"
+    { evolvesTo: "Pyrocorn", condition: name =>
+      state.pokemonItems[name] === "Pixie Plate" &&
+      hasMove(name, "Play Rough") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+
+// --- Popplio Line ---
+  "Popplio": [
+    { evolvesTo: "Brionne", condition: name => (state.pokemonData[name]?.level || 0) >= 17 }
+],
+  "Brionne": [
+    { evolvesTo: "Primarina", condition: name => (state.pokemonData[name]?.level || 0) >= 34 },
+  // New: Hydramina, Water/Dragon, requires "Dragon Scale" and "Dragon Pulse"
+    { evolvesTo: "Hydramina", condition: name =>
+      state.pokemonItems[name] === "Dragon Scale" &&
+      hasMove(name, "Dragon Pulse") &&
+      (state.pokemonData[name]?.level || 0) >= 44
+    }
+],
+// --- Grookey Line ---
+  "Grookey": [
+    { evolvesTo: "Thwackey", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Thwackey": [
+    { evolvesTo: "Rillaboom", condition: name => (state.pokemonData[name]?.level || 0) >= 35 },
+  // New: Boomdrum, Grass/Fighting, requires "Black Belt" and "Superpower"
+    { evolvesTo: "Boomdrum", condition: name =>
+      state.pokemonItems[name] === "Black Belt" &&
+      hasMove(name, "Superpower") &&
+      (state.pokemonData[name]?.level || 0) >= 48
+    }
+],
+
+// --- Scorbunny Line ---
+  "Scorbunny": [
+    { evolvesTo: "Raboot", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Raboot": [
+    { evolvesTo: "Cinderace", condition: name => (state.pokemonData[name]?.level || 0) >= 35 },
+  // New: Scorchampion, Fire/Fighting, requires "Expert Belt" and "Close Combat"
+    { evolvesTo: "Scorchampion", condition: name =>
+      state.pokemonItems[name] === "Expert Belt" &&
+      hasMove(name, "Close Combat") &&
+      (state.pokemonData[name]?.level || 0) >= 48
+    }
+],
+
+// --- Sobble Line ---
+  "Sobble": [
+    { evolvesTo: "Drizzile", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Drizzile": [
+    { evolvesTo: "Inteleon", condition: name => (state.pokemonData[name]?.level || 0) >= 35 },
+  // New: Hydrake, Water/Dragon, requires "Dragon Fang" and "Dragon Pulse"
+    { evolvesTo: "Hydrake", condition: name =>
+      state.pokemonItems[name] === "Dragon Fang" &&
+      hasMove(name, "Dragon Pulse") &&
+      (state.pokemonData[name]?.level || 0) >= 48
+    },
+  // Nurture Route: Do not evolve by level if cared for!
+  // --- Sobbella Route ---
+    { evolvesTo: "Sobbella", condition: name =>
+      isCaredForSobble(name) &&
+      state.pokemonBond[name] >= 90 &&
+      (state.pokemonData[name]?.personality === "Timid" || state.pokemonData[name]?.personality === "Calm") &&
+      state.pokemonData[name]?.hiddenNature === "Empathic"
+    },
+  // --- Tearveil Route ---
+    { evolvesTo: "Tearveil", condition: name =>
+      isCaredForSobble(name) &&
+      state.pokemonBond[name] >= 85 &&
+      state.pokemonData[name]?.hiddenNature === "Empathic" &&
+      (state.pokemonData[name]?.lastBattleOutcome === "overcame sadness" || state.pokemonData[name]?.overcameSadness)
+    },
+  // --- Optional: Cheerdrizzle Route ---
+    { evolvesTo: "Cheerdrizzle", condition: name =>
+      isCaredForSobble(name) &&
+      state.pokemonBond[name] >= 95 &&
+      (state.pokemonData[name]?.personality === "Jolly" || state.pokemonData[name]?.personality === "Bold")
+    }
+
+],
+// --- Sprigatito Line ---
+  "Sprigatito": [
+    { evolvesTo: "Floragato", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Floragato": [
+    { evolvesTo: "Meowscarada", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Masquerayne, Grass/Flying, requires "Sky Plate" and "Air Slash"
+    { evolvesTo: "Masquerayne", condition: name =>
+      state.pokemonItems[name] === "Sky Plate" &&
+      hasMove(name, "Air Slash") &&
+      (state.pokemonData[name]?.level || 0) >= 46
+    }
+],
+
+// --- Fuecoco Line ---
+  "Fuecoco": [
+    { evolvesTo: "Crocalor", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Crocalor": [
+    { evolvesTo: "Skeledirge", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Dragolich, Fire/Dragon, requires "Dragon Scale" and "Dragon Breath"
+    { evolvesTo: "Dragolich", condition: name =>
+      state.pokemonItems[name] === "Dragon Scale" &&
+      hasMove(name, "Dragon Breath") &&
+      (state.pokemonData[name]?.level || 0) >= 46
+    }
+],
+
+// --- Quaxly Line ---
+  "Quaxly": [
+    { evolvesTo: "Quaxwell", condition: name => (state.pokemonData[name]?.level || 0) >= 16 }
+],
+  "Quaxwell": [
+    { evolvesTo: "Quaquaval", condition: name => (state.pokemonData[name]?.level || 0) >= 36 },
+  // New: Aquaduke, Water/Fairy, requires "Pixie Plate" and "Play Rough"
+    { evolvesTo: "Aquaduke", condition: name =>
+      state.pokemonItems[name] === "Pixie Plate" &&
+      hasMove(name, "Play Rough") &&
+      (state.pokemonData[name]?.level || 0) >= 46
+    }
+],
+
+  // --- More can be added as needed ---
+};
+
+// Helper for Eevee's fairy check:
+function hasFairyMove(name) {
+  return state.pokemonMoves[name]?.includes("Baby-Doll Eyes") ||
+    (state.pokemonMoves[name]?.some(m => m.toLowerCase().includes("fairy")));
+}
+// Helper for Dusk Lycanroc, e.g. between 5pm-6pm
+function isDuskTime() {
+  const h = state.time?.hour ?? 0;
+  return h >= 17 && h < 18;
+}
+function hasMoveType(name, type) {
+  // You may want to associate moves with their types in your data for accuracy
+  return state.pokemonMoves[name]?.some(m => getMoveType(m) === type);
+}
+function hasMove(name, move) {
+  return state.pokemonMoves[name]?.includes(move);
+}
+function isCaredForSobble(name) {
+  // Did not faint recently, let out of Poké Ball, given choice, not forced into battles, high bond, etc.
+  const data = state.pokemonData[name] || {};
+  return (
+    (data.allowedChoice || false) &&
+    (data.oftenLetOut || false) &&
+    (data.notForcedToBattle !== false) &&
+    (state.pokemonBond[name] || 0) >= 70
+  );
+}
+
+const megaEvolutionData = {
+  "Venusaur": ["Venusaurite"],
+  "Charizard": ["Charizardite X", "Charizardite Y"],
+  "Blastoise": ["Blastoisinite"],
+  "Beedrill": ["Beedrillite"],
+  "Pidgeot": ["Pidgeotite"],
+  "Alakazam": ["Alakazite"],
+  "Slowbro": ["Slowbronite"],
+  "Gengar": ["Gengarite"],
+  "Kangaskhan": ["Kangaskhanite"],
+  "Pinsir": ["Pinsirite"],
+  "Gyarados": ["Gyaradosite"],
+  "Aerodactyl": ["Aerodactylite"],
+  "Mewtwo": ["Mewtwonite X", "Mewtwonite Y"],
+  "Ampharos": ["Ampharosite"],
+  "Steelix": ["Steelixite"],
+  "Scizor": ["Scizorite"],
+  "Heracross": ["Heracronite"],
+  "Houndoom": ["Houndoominite"],
+  "Tyranitar": ["Tyranitarite"],
+  "Sceptile": ["Sceptilite"],
+  "Blaziken": ["Blazikenite"],
+  "Swampert": ["Swampertite"],
+  "Gardevoir": ["Gardevoirite"],
+  "Sableye": ["Sablenite"],
+  "Mawile": ["Mawilite"],
+  "Aggron": ["Aggronite"],
+  "Medicham": ["Medichamite"],
+  "Manectric": ["Manectite"],
+  "Sharpedo": ["Sharpedonite"],
+  "Camerupt": ["Cameruptite"],
+  "Altaria": ["Altarianite"],
+  "Banette": ["Banettite"],
+  "Absol": ["Absolite"],
+  "Glalie": ["Glalitite"],
+  "Salamence": ["Salamencite"],
+  "Metagross": ["Metagrossite"],
+  "Latias": ["Latiasite"],
+  "Latios": ["Latiosite"],
+  "Rayquaza": [], // Mega Evolves via Dragon Ascent, not a stone
+  "Lopunny": ["Lopunnite"],
+  "Garchomp": ["Garchompite"],
+  "Lucario": ["Lucarionite"],
+  "Abomasnow": ["Abomasite"],
+  "Gallade": ["Galladite"],
+  "Audino": ["Audinite"],
+  "Diancie": ["Diancite"]
+};
+
+// --- Utility to get base species (ignores regional/forms) ---
+function getBaseSpecies(species) {
+  if (!species || typeof species !== "string") return "";
+  return species.replace(/\s*\(.*\)$/, "");
+}
+
+// --- Mega Evolution check ---
+function canMegaEvolve(pokemon) {
+  const baseSpecies = getBaseSpecies(pokemon.species || "");
+  if (baseSpecies === "Rayquaza") {
+    return pokemon.moves && pokemon.moves.includes("Dragon Ascent");
+  }
+  const stones = megaEvolutionData[baseSpecies];
+  return stones && pokemon.heldItem && stones.includes(pokemon.heldItem);
+}
+
+
+// List of species that cannot Dynamax
+const noDynamax = [
+  "Zacian", "Zamazenta", "Eternatus", "Calyrex",
+  "Pichu", "Cleffa", "Igglybuff", "Togepi", "Tyrogue", "Smoochum",
+  "Elekid", "Magby", "Azurill", "Wynaut", "Budew", "Chingling", "Bonsly", "Mime Jr.", "Happiny", "Munchlax", "Mantyke",
+  "Toxel"
+];
+function canDynamax(species) {
+  return !noDynamax.includes(species);
+}
+
+const gigantamaxSpecies = [
+  "Venusaur", "Charizard", "Blastoise", "Butterfree", "Pikachu", "Meowth", "Machamp", "Gengar",
+  "Kingler", "Lapras", "Eevee", "Snorlax", "Garbodor", "Melmetal", "Rillaboom", "Cinderace",
+  "Inteleon", "Corviknight", "Orbeetle", "Drednaw", "Coalossal", "Flapple", "Appletun",
+  "Sandaconda", "Toxtricity", "Centiskorch", "Hatterene", "Grimmsnarl", "Alcremie",
+  "Copperajah", "Duraludon", "Urshifu"
+];
+
+// Correct: Only those with gmaxFactor = true
+function canGigantamax(pokemon) {
+  return (
+    gigantamaxSpecies.includes(pokemon.species) &&
+    pokemon.gmaxFactor === true
+  );
+}
+
+// Example function to create a Pokémon with G-Max inheritance
+function createPokemon(species, parents = []) {
+  let gmax = false;
+  if (gigantamaxSpecies.includes(species)) {
+    gmax = parents.some(p => p.gmaxFactor === true);
+  }
+  return {
+    species,
+    level: 1,
+    // ...other properties
+    gmaxFactor: gmax
+  };
+}
+
+// Z-Crystal <-> Type mapping (for generic Z-Moves)
+const zCrystalTypes = {
+  "Normalium Z": "Normal",
+  "Firium Z": "Fire",
+  "Waterium Z": "Water",
+  "Grassium Z": "Grass",
+  "Electrium Z": "Electric",
+  "Icium Z": "Ice",
+  "Fightinium Z": "Fighting",
+  "Poisonium Z": "Poison",
+  "Groundium Z": "Ground",
+  "Flyinium Z": "Flying",
+  "Psychium Z": "Psychic",
+  "Buginium Z": "Bug",
+  "Rockium Z": "Rock",
+  "Ghostium Z": "Ghost",
+  "Dragonium Z": "Dragon",
+  "Darkinium Z": "Dark",
+  "Steelium Z": "Steel",
+  "Fairium Z": "Fairy"
+};
+
+// Exclusive Z-Moves and their required Pokémon/Z-Crystal/move
+const exclusiveZMoves = [
+  // Pikachu
+  { species: "Pikachu", zCrystal: "Pikashunium Z", move: "Thunderbolt", zMove: "10,000,000 Volt Thunderbolt" },
+  { species: "Pikachu", zCrystal: "Pikanium Z", move: "Volt Tackle", zMove: "Catastropika" },
+  // Raichu (Alolan)
+  { species: "Raichu-Alola", zCrystal: "Aloraichium Z", move: "Thunderbolt", zMove: "Stoked Sparksurfer" },
+  // Eevee
+  { species: "Eevee", zCrystal: "Eevium Z", move: "Last Resort", zMove: "Extreme Evoboost" },
+  // Snorlax
+  { species: "Snorlax", zCrystal: "Snorlium Z", move: "Giga Impact", zMove: "Pulverizing Pancake" },
+  // Mew
+  { species: "Mew", zCrystal: "Mewnium Z", move: "Psychic", zMove: "Genesis Supernova" },
+  // Decidueye
+  { species: "Decidueye", zCrystal: "Decidium Z", move: "Spirit Shackle", zMove: "Sinister Arrow Raid" },
+  // Incineroar
+  { species: "Incineroar", zCrystal: "Incinium Z", move: "Darkest Lariat", zMove: "Malicious Moonsault" },
+  // Primarina
+  { species: "Primarina", zCrystal: "Primarium Z", move: "Sparkling Aria", zMove: "Oceanic Operetta" },
+  // Tapu
+  { species: "Tapu Koko", zCrystal: "Tapunium Z", move: "Nature's Madness", zMove: "Guardian of Alola" },
+  { species: "Tapu Lele", zCrystal: "Tapunium Z", move: "Nature's Madness", zMove: "Guardian of Alola" },
+  { species: "Tapu Bulu", zCrystal: "Tapunium Z", move: "Nature's Madness", zMove: "Guardian of Alola" },
+  { species: "Tapu Fini", zCrystal: "Tapunium Z", move: "Nature's Madness", zMove: "Guardian of Alola" },
+  // Marshadow
+  { species: "Marshadow", zCrystal: "Marshadium Z", move: "Spectral Thief", zMove: "Soul-Stealing 7-Star Strike" },
+  // Lycanroc
+  { species: "Lycanroc", zCrystal: "Lycanium Z", move: "Stone Edge", zMove: "Splintered Stormshards" },
+  // Kommo-o
+  { species: "Kommo-o", zCrystal: "Kommonium Z", move: "Clanging Scales", zMove: "Clangorous Soulblaze" },
+  // Mimikyu
+  { species: "Mimikyu", zCrystal: "Mimikium Z", move: "Play Rough", zMove: "Let's Snuggle Forever" },
+  // Solgaleo
+  { species: "Solgaleo", zCrystal: "Solganium Z", move: "Sunsteel Strike", zMove: "Searing Sunraze Smash" },
+  // Lunala
+  { species: "Lunala", zCrystal: "Lunalium Z", move: "Moongeist Beam", zMove: "Menacing Moonraze Maelstrom" },
+  // Necrozma (Dusk Mane/Solgaleo form)
+  { species: "Necrozma-Dusk-Mane", zCrystal: "Ultranecrozium Z", move: "Photon Geyser", zMove: "Light That Burns the Sky" },
+  // Necrozma (Dawn Wings/Lunala form)
+  { species: "Necrozma-Dawn-Wings", zCrystal: "Ultranecrozium Z", move: "Photon Geyser", zMove: "Light That Burns the Sky" },
+  // Necrozma (Ultra)
+  { species: "Necrozma-Ultra", zCrystal: "Ultranecrozium Z", move: "Photon Geyser", zMove: "Light That Burns the Sky" }
+  // Add any missing exclusives here!
+];
+
+// Checks if a Pokémon can use an exclusive Z-Move
+function canExclusiveZMove(pokemon, move, zCrystal) {
+  return exclusiveZMoves.some(z =>
+    z.species === pokemon.species &&
+    z.zCrystal === zCrystal &&
+    z.move === move
+  );
+}
+
+// Checks if a Pokémon can use a **generic** Z-Move (move type must match crystal)
+function canGenericZMove(pokemon, move, zCrystal, moveType) {
+  return (
+    zCrystalTypes[zCrystal] &&
+    pokemon.moves.includes(move) &&
+    moveType === zCrystalTypes[zCrystal]
+  );
+}
+
+// Example: To check if a Pokémon can use any Z-Move (exclusive or generic)
+function canZMove(pokemon, move, zCrystal, moveType) {
+  return (
+    canExclusiveZMove(pokemon, move, zCrystal) ||
+    canGenericZMove(pokemon, move, zCrystal, moveType)
+  );
+}
+
+
+const regionalForms = {
+  // Alola Forms
+  "Rattata":      { "Alola": "Rattata (Alolan)" },
+  "Raticate":     { "Alola": "Raticate (Alolan)" },
+  "Raichu":       { "Alola": "Raichu (Alolan)" },
+  "Sandshrew":    { "Alola": "Sandshrew (Alolan)" },
+  "Sandslash":    { "Alola": "Sandslash (Alolan)" },
+  "Vulpix":       { "Alola": "Vulpix (Alolan)" },
+  "Ninetales":    { "Alola": "Ninetales (Alolan)" },
+  "Diglett":      { "Alola": "Diglett (Alolan)" },
+  "Dugtrio":      { "Alola": "Dugtrio (Alolan)" },
+  "Meowth":       { "Alola": "Meowth (Alolan)", "Galar": "Meowth (Galarian)" },
+  "Persian":      { "Alola": "Persian (Alolan)" },
+  "Geodude":      { "Alola": "Geodude (Alolan)" },
+  "Graveler":     { "Alola": "Graveler (Alolan)" },
+  "Golem":        { "Alola": "Golem (Alolan)" },
+  "Grimer":       { "Alola": "Grimer (Alolan)" },
+  "Muk":          { "Alola": "Muk (Alolan)" },
+  "Exeggutor":    { "Alola": "Exeggutor (Alolan)" },
+  "Marowak":      { "Alola": "Marowak (Alolan)" },
+
+  // Galar Forms
+  "Ponyta":       { "Galar": "Ponyta (Galarian)" },
+  "Rapidash":     { "Galar": "Rapidash (Galarian)" },
+  "Slowpoke":     { "Galar": "Slowpoke (Galarian)" },
+  "Slowbro":      { "Galar": "Slowbro (Galarian)" },
+  "Farfetch'd":   { "Galar": "Farfetch'd (Galarian)" },
+  "Weezing":      { "Galar": "Weezing (Galarian)" },
+  "Mr. Mime":     { "Galar": "Mr. Mime (Galarian)" },
+  "Corsola":      { "Galar": "Corsola (Galarian)" },
+  "Zigzagoon":    { "Galar": "Zigzagoon (Galarian)" },
+  "Linoone":      { "Galar": "Linoone (Galarian)" },
+  "Darumaka":     { "Galar": "Darumaka (Galarian)" },
+  "Darmanitan":   { "Galar": "Darmanitan (Galarian)" },
+  "Yamask":       { "Galar": "Yamask (Galarian)" },
+  "Stunfisk":     { "Galar": "Stunfisk (Galarian)" },
+  "Articuno":     { "Galar": "Articuno (Galarian)" },
+  "Zapdos":       { "Galar": "Zapdos (Galarian)" },
+  "Moltres":      { "Galar": "Moltres (Galarian)" },
+
+  // Hisuian Forms
+  "Growlithe":    { "Hisui": "Growlithe (Hisuian)" },
+  "Arcanine":     { "Hisui": "Arcanine (Hisuian)" },
+  "Voltorb":      { "Hisui": "Voltorb (Hisuian)" },
+  "Electrode":    { "Hisui": "Electrode (Hisuian)" },
+  "Typhlosion":   { "Hisui": "Typhlosion (Hisuian)" },
+  "Qwilfish":     { "Hisui": "Qwilfish (Hisuian)" },
+  "Sneasel":      { "Hisui": "Sneasel (Hisuian)" },
+  "Samurott":     { "Hisui": "Samurott (Hisuian)" },
+  "Lilligant":    { "Hisui": "Lilligant (Hisuian)" },
+  "Zorua":        { "Hisui": "Zorua (Hisuian)" },
+  "Zoroark":      { "Hisui": "Zoroark (Hisuian)" },
+  "Braviary":     { "Hisui": "Braviary (Hisuian)" },
+  "Sliggoo":      { "Hisui": "Sliggoo (Hisuian)" },
+  "Goodra":       { "Hisui": "Goodra (Hisuian)" },
+  "Avalugg":      { "Hisui": "Avalugg (Hisuian)" },
+  "Decidueye":    { "Hisui": "Decidueye (Hisuian)" },
+  "Basculin":     { "Hisui": "Basculin (Hisuian)" },
+  "Basculegion":  { "Hisui": "Basculegion (Hisuian)" },
+  "Sneasler":     { "Hisui": "Sneasler" }, // new evolution
+
+  // Paldea Forms
+  "Tauros": {
+    "Paldea": "Tauros (Paldean)",
+    "Paldea-Blaze": "Tauros (Paldean Blaze Breed)",
+    "Paldea-Aqua": "Tauros (Paldean Aqua Breed)"
+  },
+  "Wooper":       { "Paldea": "Wooper (Paldean)" },
+  // (Clodsire is not a regional form but a new evolution.)
+
+  // Others
+  "Shellos": {
+    "West": "Shellos (West Sea)",
+    "East": "Shellos (East Sea)"
+  },
+  "Gastrodon": {
+    "West": "Gastrodon (West Sea)",
+    "East": "Gastrodon (East Sea)"
+  },
+  "Basculin": {
+    "Red-Striped": "Basculin (Red-Striped)",
+    "Blue-Striped": "Basculin (Blue-Striped)",
+    "White-Striped": "Basculin (White-Striped)",
+    "Hisui": "Basculin (Hisuian)"
+  },
+  // Unown: many forms but not region-based, so not included here.
+};
+
+const assignRegionalForm = (name, species) => {
+  const region = state.region;
+  if (!state.pokemonData[name]) state.pokemonData[name] = {};
+  if (regionalForms[species] && regionalForms[species][region]) {
+    state.pokemonData[name].species = regionalForms[species][region];
+  } else {
+    state.pokemonData[name].species = species; // default form
+  }
+};
+
+const assignPersonality = (name) => {
+  if (!state.pokemonData[name]) state.pokemonData[name] = {};
+  if (!state.pokemonData[name].personality) {
+    const keys = Object.keys(personalityTraits);
+    const randomPersonality = keys[Math.floor(Math.random() * keys.length)];
+    state.pokemonData[name].personality = randomPersonality;
+  }
+  if (!state.pokemonData[name].species) {
+    state.pokemonData[name].species = name;
+  }
+  if (!state.pokemonData[name].hiddenNature) {
+    const hidden = hiddenNatures[Math.floor(Math.random() * hiddenNatures.length)];
+    state.pokemonData[name].hiddenNature = hidden;
+  }
+
+};
+
+ const extractPokemonName = (text) => {
+  // Try to extract a name using basic structure like: "Charizard", "my Pikachu", etc.
+  const nameMatch = text.match(/(?:my |with |to |at )?([A-Z][a-z0-9]+)( the )?(Pok[eé]mon)?/i);
+  if (nameMatch) return nameMatch[1];
+  return "main"; // Fallback if no name detected
+};
+
+const checkEvolution = (name) => {
+  if (state.pokemonData[name]?.evolvedTo) return; // Already evolved
+  const species = state.pokemonData[name]?.species || name;
+  const evoList = evolutionConditions[species];
+  if (!evoList) return;
+
+  for (let evo of evoList) {
+    if (evo.condition(name)) {
+      state.pokemonData[name].evolvedTo = evo.evolvesTo;
+      output.push(`${name} evolved into ${evo.evolvesTo}!`);
+
+
+      break;
+    }
+  }
+};
+
+const maybeRevealHiddenNature = (name) => {
+  if (state.pokemonBond[name] >= 90 && !state.pokemonData[name].natureRevealed) {
+    state.pokemonData[name].natureRevealed = true;
+    output.push(`${name} seems to have a hidden side... it's ${state.pokemonData[name].hiddenNature}.`);
+
+
+  }
+};
+
+const checkAndUpdateBond = (actionList, category) => {
+  for (let entry of actionList) {
+    if (entry.phrase.test(text)) {
+      const name = extractPokemonName(text);
+      assignPersonality(name);
+      const personality = state.pokemonData[name].personality;
+      const mod = personalityTraits[personality]?.modifiers?.[category] || 1.0;
+
+      if (!state.pokemonBond[name]) state.pokemonBond[name] = 0;
+      state.pokemonBond[name] += Math.round(entry.value * mod);
+
+      maybeRevealHiddenNature(name); 
+      checkEvolution(name);
+      updateBehavior(name);
+    }
+  }
+};
+
+
+checkAndUpdateBond(goodActions, "good");
+checkAndUpdateBond(neutralActions, "neutral");
+checkAndUpdateBond(badActions, "bad"); 
+
+  // --- SYSTEM INITIALIZATION (only call .init ONCE per modifier run) ---
+  if (typeof npcMemory !== "undefined" && typeof npcMemory.init === "function") npcMemory.init();
+  if (typeof inventorySystem !== "undefined" && typeof inventorySystem.init === "function") inventorySystem.init();
+  if (typeof dreamSystem !== "undefined" && typeof dreamSystem.init === "function") dreamSystem.init();
+  if (typeof trainerLog !== "undefined" && typeof trainerLog.init === "function") trainerLog.init();
+  if (typeof reputationSystem !== "undefined" && typeof reputationSystem.init === "function") reputationSystem.init();
+
+  // --- CLOCK/SCHEDULE/SCENE/ENGINE INITIALIZATION (order matters) ---
+  if (typeof worldClock !== "undefined" && typeof worldClock.init === "function") worldClock.init();
+
+  // --- GLOBAL EXPORTS: For modularity ---
+  globalThis.worldClock = worldClock;
+  globalThis.sceneEngine = sceneEngine;
+  globalThis.world = world;
+
+  // --- SAFETY: Day check for resets (e.g., shops, flags) ---
+  state.lastDayCheck = state.lastDayCheck || 0;
+  if (state.time?.day > state.lastDayCheck) {
+    state.lastDayCheck = state.time.day;
+    // Place shop/event refresh logic here if needed
+  }
+
+  // --- SAFE MONKEY-PATCH: worldClock.passTime (include eventSystem.checkEvents) ---
+  if (typeof worldClock.passTime === "function" && !worldClock.__patched) {
+    const originalPassTime = worldClock.passTime;
+    worldClock.passTime = (hours = 1) => {
+      originalPassTime(hours);
+      if (typeof eventSystem?.checkEvents === "function") eventSystem.checkEvents();
+    };
+    worldClock.__patched = true;
+  }
+
+  // --- SAFE MONKEY-PATCH: sceneEngine.transition (include eventSystem/check/log) ---
+  if (typeof sceneEngine.transition === "function" && !sceneEngine.__patched) {
+    const originalSceneTransition = sceneEngine.transition;
+    sceneEngine.transition = (sceneId, options = {}) => {
+      if (typeof eventSystem?.checkEvents === "function") eventSystem.checkEvents();
+      output.push("...");
+      if (typeof sceneEngine?.logScene === "function") sceneEngine.logScene(sceneId);
+      originalSceneTransition(sceneId, options);
+    };
+    sceneEngine.__patched = true;
+  }
+
+modifier(text);
