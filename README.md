@@ -1,2 +1,2 @@
 # Pokeverse-Engine
-Pokéverse Engine by MillennialJesus: A living Pokémon world in a single script: time, weather, events, advanced breeding, Mega Evolution, Z-Moves, Gigantamax, regional forms, NPC memory, and more—modular and ready for any scenario.
+This is a work in progress! While its exspansive and promises a lot. It has not been fully tested. So if something doesnt work or an event or evelution doesn't trigger. Please let me know so that I may fix it.
